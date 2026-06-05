@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+window.addEventListener('message', function(e) {
+  if (!e.data || !e.data.type) return;
+  if (e.data.type === 'check-pushed-pieces') {
+    console.log('[PatternINQ] Received check-pushed-pieces message');
+    _cadShotLoaded = false;
+    _loadCadShotPush();
+  }
+});
+=======
+window.addEventListener('message', function(e) {
+  if (!e.data || !e.data.type) return;
+
+  if (e.data.type === 'push-pieces-direct') {
+    const payload = e.data.payload;
+    if (payload && payload.pieces && payload.pieces.length) {
+      const req = indexedDB.open('CadShot_InqPush', 1);
+      req.onsuccess = (ev) => {
+        const db = ev.target.result;
+        if (!db) return;
+        const tx = db.transaction('push', 'readwrite');
+        tx.objectStore('push').put(payload);
+        tx.oncomplete = () => {
+          _cadShotLoaded = false;
+          _loadCadShotPush();
+        };
+      };
+    }
+    return;
+  }
+
+  if (e.data.type === 'check-pushed-pieces') {
+    console.log('[PatternINQ] Received check-pushed-pieces message');
+    _cadShotLoaded = false;
+    _loadCadShotPush();
+  }
+});
+>>>>>>> REPLACE
