@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CadShot Professional — Leather Nesting</title>
+  <link rel="stylesheet" href="styles/theme.css">
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/layout.css">
+  <link rel="stylesheet" href="styles/components.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ═══ ZONE D: TOP MENU BAR (text menus) ═══ -->
+  <nav id="top-menu" role="menubar" aria-label="Main menu">
+    <!-- SPA page navigation -->
+    <a class="menu-nav-link" href="#library" data-nav-view="library">Library</a>
+    <a class="menu-nav-link" href="#patterninq" data-nav-view="patterninq">PatternINQ</a>
+    <a class="menu-nav-link active" href="#nesting" data-nav-view="nesting">Nesting</a>
+    <a class="menu-nav-link" href="#digitizer" data-nav-view="digitizer">Digitizer</a>
+    <div class="menu-nav-sep"></div>
+    <div class="menu-item" role="menuitem" aria-haspopup="true" aria-expanded="false" tabindex="0">
+      File
+      <div class="menu-dropdown" role="menu">
+        <div class="menu-dropdown-item" role="menuitem">New Project <span class="shortcut">Ctrl+N</span></div>
+        <div class="menu-dropdown-item" role="menuitem">Open Project <span class="shortcut">Ctrl+O</span></div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Save Session <span class="shortcut">Ctrl+S</span></div>
+        <div class="menu-dropdown-item" role="menuitem">Save As...</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Import DXF/SVG...</div>
+        <div class="menu-dropdown-item" role="menuitem">Export DXF <span class="shortcut">Ctrl+E</span></div>
+        <div class="menu-dropdown-item" role="menuitem">Export SVG</div>
+        <div class="menu-dropdown-item" role="menuitem">Export JSON</div>
+        <div class="menu-dropdown-item" role="menuitem">Generate G-code</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Exit <span class="shortcut">Ctrl+Q</span></div>
+      </div>
+    </div>
+    <div class="menu-item" role="menuitem" aria-haspopup="true" aria-expanded="false" tabindex="0">
+      Nesting
+      <div class="menu-dropdown" role="menu">
+        <div class="menu-dropdown-item" role="menuitem">Start Nesting <span class="shortcut">R</span></div>
+        <div class="menu-dropdown-item" role="menuitem">Stop Nesting <span class="shortcut">Shift+R</span></div>
+        <div class="menu-dropdown-item" role="menuitem">Pause <span class="shortcut">P</span></div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Clear All Placements</div>
+        <div class="menu-dropdown-item" role="menuitem">Nesting Parameters...</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Export CUT Only</div>
+        <div class="menu-dropdown-item" role="menuitem">Export MARK Only</div>
+        <div class="menu-dropdown-item" role="menuitem">Load Demo Patterns</div>
+      </div>
+    </div>
+    <div class="menu-item" role="menuitem" aria-haspopup="true" aria-expanded="false" tabindex="0">
+      Patterns
+      <div class="menu-dropdown" role="menu">
+        <div class="menu-dropdown-item" role="menuitem">Load Parts...</div>
+        <div class="menu-dropdown-item" role="menuitem">Add Single Part</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Part Library</div>
+        <div class="menu-dropdown-item" role="menuitem">Checkout...</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Clear All Parts</div>
+      </div>
+    </div>
+    <div class="menu-item" role="menuitem" aria-haspopup="true" aria-expanded="false" tabindex="0">
+      Tools
+      <div class="menu-dropdown" role="menu">
+        <div class="menu-dropdown-item" role="menuitem">Detect Hide</div>
+        <div class="menu-dropdown-item" role="menuitem">Calibrate</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Measure Distance</div>
+        <div class="menu-dropdown-item" role="menuitem">Inspect Part</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Add Hole</div>
+        <div class="menu-dropdown-item" role="menuitem">Remove Hole</div>
+        <div class="menu-dropdown-item" role="menuitem">Edit Vertices</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Auto-Detect Paper</div>
+        <div class="menu-dropdown-item" role="menuitem">Reset Calibration</div>
+      </div>
+    </div>
+    <div class="menu-item" role="menuitem" aria-haspopup="true" aria-expanded="false" tabindex="0">
+      View
+      <div class="menu-dropdown" role="menu">
+        <div class="menu-dropdown-item" role="menuitem">Toggle Grid <span class="shortcut">H</span></div>
+        <div class="menu-dropdown-item" role="menuitem">Toggle Hide Outline <span class="shortcut">G</span></div>
+        <div class="menu-dropdown-item" role="menuitem">Toggle Info Overlay <span class="shortcut">I</span></div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Zoom to Fit <span class="shortcut">Shift+2</span></div>
+        <div class="menu-dropdown-item" role="menuitem">Zoom 100% <span class="shortcut">Shift+1</span></div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Collapse Right Panel</div>
+        <div class="menu-dropdown-item" role="menuitem">Toggle Mask Overlay</div>
+        <div class="menu-dropdown-item" role="menuitem">Debug Collision Map</div>
+        <div class="menu-separator"></div>
+        <div class="menu-dropdown-item" role="menuitem">Keyboard Shortcuts...</div>
+      </div>
+    </div>
+    <div class="menu-nav-sep"></div>
+    <button class="menu-nav-link" id="mn-image" style="border:none;background:none;cursor:pointer;color:inherit;font:inherit">Image</button>
+    <button class="menu-nav-link" id="mn-parts" style="border:none;background:none;cursor:pointer;color:inherit;font:inherit">Parts</button>
+    <button class="menu-nav-link" id="mn-detect" style="border:none;background:none;cursor:pointer;color:inherit;font:inherit">Detect</button>
+  </nav>
+  <input type="file" id="fi-mn-image" accept="image/*" style="display:none">
+  <input type="file" id="fi-mn-parts" accept=".dxf,.svg" multiple style="display:none">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- PAGE: LIBRARY (patternOutQ) — Nesting Checkout, identical to HTML   -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="page-library" class="page-container" style="display:none">
+    <iframe id="iframe-library" class="page-iframe" src="patternOutQ.html" title="PatternOQ — Nesting Checkout"></iframe>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- PAGE: PATTERNINQ — Pattern Organizer, identical to HTML              -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="page-patterninq" class="page-container" style="display:none">
+    <iframe id="iframe-patterninq" class="page-iframe" src="patternINQ.html" title="PatternIQ PRO — Pattern Organizer"></iframe>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- PAGE: DIGITIZER — Mobile Pattern Digitizer                           -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="page-digitizer" class="page-container" style="display:none">
+    <iframe id="iframe-digitizer" class="page-iframe" src="cadShot.html" title="CadShot Mobile — Pattern Digitizer"></iframe>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- PAGE: NESTING — PatterNestQ.html (proven working engine)             -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div id="page-nesting" class="page-container">
+    <iframe id="iframe-nesting" class="page-iframe" src="PatterNestQ.html" title="PatterNestQ — GPU Parallel Nester"></iframe>
+  </div>
+
+  <!-- OLD NESTING UI REMOVED — replaced by PatterNestQ.html iframe above -->
+  <div style="display:none">
+
+  <!-- ═══ ICON TOOLBAR (PatternSmith-style) ═══ -->
+  <div id="icon-toolbar" role="toolbar" aria-label="Nesting tools">
+    <!-- Row 1: Icon buttons -->
+    <div class="toolbar-row toolbar-row-icons">
+      <!-- Nesting Mode group -->
+      <button class="icon-tool-btn active" data-tool="nest-place" title="Nest / Place" aria-label="Nest / Place" aria-pressed="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <span class="itb-label">Nest</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="move-free" title="Move Freely" aria-label="Move Freely">
+        <svg viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3"/><path d="M9 5l3-3 3 3"/><path d="M15 19l-3 3-3-3"/><path d="M19 9l3 3-3 3"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+        <span class="itb-label">Move</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="auto-fit" title="Auto Fit" aria-label="Auto Fit">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
+        <span class="itb-label">Auto Fit</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="free-zoom" title="Free Zoom" aria-label="Free Zoom">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        <span class="itb-label">Zoom</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="snap-h" title="Snap Horizontal" aria-label="Snap Horizontal">
+        <svg viewBox="0 0 24 24"><line x1="4" y1="12" x2="20" y2="12"/><polyline points="8 8 4 12 8 16"/><polyline points="16 8 20 12 16 16"/></svg>
+        <span class="itb-label">Snap H</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="snap-v" title="Snap Vertical" aria-label="Snap Vertical">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="4" x2="12" y2="20"/><polyline points="8 8 12 4 16 8"/><polyline points="8 16 12 20 16 16"/></svg>
+        <span class="itb-label">Snap V</span>
+      </button>
+
+      <div class="toolbar-vsep"></div>
+
+      <!-- Duplicate / Align group -->
+      <button class="icon-tool-btn" data-tool="duplicate" title="Duplicate" aria-label="Duplicate">
+        <svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+        <span class="itb-label">Copy</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="align-left" title="Align Left" aria-label="Align Left">
+        <svg viewBox="0 0 24 24"><line x1="4" y1="4" x2="4" y2="20"/><rect x="8" y="6" width="10" height="4" rx="1"/><rect x="8" y="14" width="6" height="4" rx="1"/></svg>
+        <span class="itb-label">Align</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="rotate-cw" title="Rotate 90 CW" aria-label="Rotate 90 CW">
+        <svg viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M21 8A9 9 0 005.64 5.64L3 8"/></svg>
+        <span class="itb-label">Rotate</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="flip-h" title="Flip Horizontal" aria-label="Flip Horizontal">
+        <svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M4 7h3l5 5-5 5H4V7z"/><path d="M20 7h-3l-5 5 5 5h3V7z" opacity=".4"/></svg>
+        <span class="itb-label">Flip</span>
+      </button>
+
+      <div class="toolbar-vsep"></div>
+
+      <!-- Select / Measure -->
+      <button class="icon-tool-btn" data-tool="select" title="Select" aria-label="Select">
+        <svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg>
+        <span class="itb-label">Select</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="measure" title="Measure" aria-label="Measure">
+        <svg viewBox="0 0 24 24"><path d="M2 12h20"/><path d="M6 8v8"/><path d="M18 8v8"/><path d="M10 10v4"/><path d="M14 10v4"/></svg>
+        <span class="itb-label">Measure</span>
+      </button>
+
+      <div class="toolbar-vsep"></div>
+
+      <!-- Load/Import group -->
+      <button class="icon-tool-btn" data-tool="load-image" title="Load Hide Image" aria-label="Load Hide Image">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span class="itb-label">Image</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="load-parts" title="Load Pattern Parts" aria-label="Load Pattern Parts">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="M9 15h6"/></svg>
+        <span class="itb-label">Parts</span>
+      </button>
+      <button class="icon-tool-btn" data-tool="detect" title="Detect Hide Boundary" aria-label="Detect Hide Boundary">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <span class="itb-label">Detect</span>
+      </button>
+    </div>
+
+    <!-- Row 2: Parameter inputs -->
+    <div class="toolbar-row toolbar-row-params">
+      <div class="param-group" data-tooltip="Minimum gap between placed parts (mm)">
+        <span class="pg-label">Spacing:</span>
+        <input type="number" class="pg-input" id="param-spacing" value="5" min="0" max="50">
+      </div>
+      <div class="param-group" data-tooltip="Minimum distance from hide/sheet edge (mm)">
+        <span class="pg-label">Edge:</span>
+        <input type="number" class="pg-input" id="param-edge" value="3" min="0" max="50">
+      </div>
+      <div class="param-group" data-tooltip="Material type affects nesting strategy">
+        <span class="pg-label">Material:</span>
+        <select class="pg-select" id="param-material">
+          <option>Leather — Full Grain</option>
+          <option>Leather — Split</option>
+          <option>Synthetic</option>
+          <option>Default</option>
+        </select>
+      </div>
+      <div class="param-group" data-tooltip="Total sheet/table width in mm">
+        <span class="pg-label">Width:</span>
+        <input type="number" class="pg-input" id="param-table-width" value="1200" min="100">
+      </div>
+      <div class="param-group" data-tooltip="Number of rotation angles to try per part">
+        <span class="pg-label">Rotations:</span>
+        <select class="pg-select" id="param-rotations" style="min-width:60px">
+          <option value="1">None</option>
+          <option value="2">2</option>
+          <option value="4" selected>4</option>
+          <option value="8">8</option>
+          <option value="12">12</option>
+          <option value="24">24</option>
+        </select>
+      </div>
+      <div class="param-group" data-tooltip="Sort strategy for placement order">
+        <span class="pg-label">Sort:</span>
+        <select class="pg-select" id="param-sort-strategy" style="min-width:90px">
+          <option value="area-desc" selected>Area (large first)</option>
+          <option value="large-first">Longest side</option>
+          <option value="small-first">Small first</option>
+        </select>
+      </div>
+      <div class="param-group" data-tooltip="Gravity direction for part placement">
+        <span class="pg-label">Gravity:</span>
+        <select class="pg-select" id="param-gravity" style="min-width:90px">
+          <option value="bl" selected>Bottom-left</option>
+          <option value="tl">Top-left</option>
+          <option value="tr">Top-right</option>
+          <option value="br">Bottom-right</option>
+          <option value="co">Center-out</option>
+        </select>
+      </div>
+      <div class="param-group" data-tooltip="Multi-shake mode tries multiple gravity directions">
+        <span class="pg-label">Shake:</span>
+        <select class="pg-select" id="param-multishake" style="min-width:70px">
+          <option value="none">None</option>
+          <option value="lr">L/R</option>
+          <option value="all4" selected>All 4</option>
+          <option value="all5">All 5</option>
+        </select>
+      </div>
+
+      <div class="toolbar-vsep" style="height:20px"></div>
+
+      <div class="param-group">
+        <label class="pg-checkbox"><input type="checkbox" checked> Bounds</label>
+      </div>
+      <div class="param-group">
+        <label class="pg-checkbox"><input type="checkbox"> Grid</label>
+      </div>
+
+      <div class="toolbar-vsep" style="height:20px"></div>
+
+      <button class="btn-autonest" id="btn-start-nesting" disabled>Autonest</button>
+    </div>
+  </div>
+
+  <!-- ═══ TAB BAR ═══ -->
+  <div id="tab-bar" role="tablist">
+    <div class="tab-item active" role="tab" aria-selected="true">
+      <span>Nest 1 — Untitled</span>
+      <span class="tab-close">&times;</span>
+    </div>
+    <div class="tab-item" role="tab" aria-selected="false">
+      <span>+ New Nest</span>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN WORKSPACE ═══ -->
+  <div id="workspace">
+
+    <!-- ═══ NESTING SIDEBAR — identical to PatterNestQ.html #sb ═══ -->
+    <div id="nesting-sidebar" style="display:none">
+      <div class="sbh">
+        <h1>PATTR<span>NIQ</span></h1>
+        <p>GPU Parallel Nester · v9</p>
+      </div>
+      <div class="sbb">
+
+        <!-- PARTS -->
+        <div class="ss" id="ns-sec-parts">
+          <h2><span class="col-arrow">▼</span>Pattern Parts</h2>
+          <div class="ss-body">
+          <div class="dz" id="ns-dz-parts">
+            <span style="font-size:16px;display:block;margin-bottom:3px;opacity:.5">⬡</span>
+            Drop DXF / SVG parts here<br>
+            <span style="font-size:9px;opacity:.7">Load more any time — nesting preserved</span>
+          </div>
+          <input type="file" id="ns-fi-parts" accept=".dxf,.svg" multiple style="display:none">
+          <div class="fmts"><span class="fb fd">DXF</span><span class="fb fsv">SVG</span><span style="font-size:9px;color:var(--mut)">both supported</span></div>
+          <button class="bo" id="ns-btn-demo" style="margin-top:7px;margin-bottom:0">◈ Load Demo Shoe Patterns</button>
+          </div>
+        </div>
+
+        <!-- NESTING AREA -->
+        <div class="ss" id="ns-sec-nesting">
+          <h2><span class="col-arrow">▼</span>Nesting Area</h2>
+          <div class="ss-body">
+          <!-- Hide import -->
+          <div class="dz hide-dz" id="ns-dz-hide" style="margin-bottom:8px">
+            <span style="font-size:13px;opacity:.5">🦴</span>
+            Drop leather hide DXF / SVG<br>
+            <span style="font-size:9px;opacity:.7">Optional — replaces rectangle sheet below</span>
+          </div>
+          <input type="file" id="ns-fi-hide" accept=".dxf,.svg" style="display:none">
+          <div id="ns-hide-card" style="display:none;background:rgba(34,168,85,.08);border:1px solid rgba(34,168,85,.22);border-radius:6px;padding:9px 10px">
+            <div class="hc-row">
+              <span class="hc-icon">📐</span>
+              <div class="hc-body">
+                <div class="hc-name" id="ns-hc-name">—</div>
+                <div class="hc-dims" id="ns-hc-dims">—</div>
+              </div>
+              <button class="hc-del" id="ns-btn-hdel">×</button>
+            </div>
+          </div>
+          <!-- Sheet rectangle (disabled when hide loaded) -->
+          <div class="fr" style="margin-top:8px">
+            <div class="f"><label for="ns-sw">Width (mm)</label><input type="number" id="ns-sw" name="ns-sw" value="1200" min="100" max="4000"></div>
+            <div class="f"><label for="ns-sh">Height (mm)</label><input type="number" id="ns-sh" name="ns-sh" value="600" min="100" max="2000"></div>
+          </div>
+          <div class="fr">
+            <div class="f"><label for="ns-sp">Spacing (mm)</label><input type="number" id="ns-sp" name="ns-sp" value="2" min="0" max="50" step="0.5"></div>
+            <div class="f"><label for="ns-rot">Rotations</label>
+              <select id="ns-rot" name="ns-rot">
+                <option value="1">None (0°)</option>
+                <option value="2">0° + 180°</option>
+                <option value="4" selected>4 × 90°</option>
+                <option value="8">8 × 45°</option>
+                <option value="12">12 × 30°</option>
+                <option value="24">24 × 15° (best fit)</option>
+              </select>
+            </div>
+          </div>
+          <div class="fr">
+            <div class="f"><label for="ns-gravity">Packing direction</label>
+              <select id="ns-gravity" name="ns-gravity">
+                <option value="tl">↖ Top-left</option>
+                <option value="tr">↗ Top-right</option>
+                <option value="bl" selected>↙ Bottom-left (Tetris gravity)</option>
+                <option value="br">↘ Bottom-right</option>
+                <option value="co">⊙ Center-out (best for irregular hides)</option>
+              </select>
+            </div>
+            <div class="f"><label for="ns-sort-strat">Sort strategy</label>
+              <select id="ns-sort-strat" name="ns-sort-strat">
+                <option value="large-first">Large → small (void fill)</option>
+                <option value="area-desc" selected>Area descending only</option>
+                <option value="small-first">Small → large</option>
+              </select>
+            </div>
+          </div>
+          <div class="f"><label for="ns-compact">Compaction passes — shake &amp; settle after nesting</label>
+            <select id="ns-compact" name="ns-compact">
+              <option value="0">None (fastest)</option>
+              <option value="1">1 pass</option>
+              <option value="2">2 passes</option>
+              <option value="3" selected>3 passes (recommended)</option>
+            </select>
+          </div>
+          <div class="f"><label for="ns-multishake">Multi-direction shake — cycles directions to squeeze more in</label>
+            <select id="ns-multishake" name="ns-multishake">
+              <option value="none">Off</option>
+              <option value="lr">↔ Left ↔ Right (2 directions)</option>
+              <option value="all4" selected>⟲ All 4 corners (thorough)</option>
+              <option value="all5">⟲ All 4 + center (deepest squeeze)</option>
+            </select>
+          </div>
+          </div>
+        </div>
+
+        <!-- PARTS LIST -->
+        <div class="ss" id="ns-sec-partslist">
+          <h2><span class="col-arrow">▼</span>Parts <span id="ns-pc" style="color:var(--mut);font-weight:400">(0)</span></h2>
+          <div class="ss-body">
+          <div id="ns-bsb" style="background:rgba(0,136,255,.08);border:1px solid rgba(0,136,255,.2);border-radius:5px;padding:7px 9px;margin-bottom:7px;display:none">
+            <div class="bsr">
+              <span><span class="bsp" id="ns-bsp">0</span> <span style="font-size:10px;color:var(--mut)">placed</span></span>
+              <span><span class="bsn" id="ns-bsnn">0</span> <span style="font-size:10px;color:var(--mut)">pending</span></span>
+            </div>
+            <div class="bsh">▶ run to add without moving placed parts</div>
+          </div>
+          <div id="ns-pl"><div class="eh">No parts loaded</div></div>
+          </div>
+        </div>
+
+        <!-- CONTROLS -->
+        <div class="ss" id="ns-sec-controls">
+          <h2><span class="col-arrow">▼</span>Controls</h2>
+          <div class="ss-body">
+          <button class="btn br" id="ns-btn-run" disabled>▶ Start Nesting</button>
+          <button class="btn bst" id="ns-btn-stop" style="display:none;margin-top:6px">■ Stop</button>
+          <div class="pw"><div id="ns-pb"></div></div>
+          <div id="ns-ptxt">Load parts to begin</div>
+          <div id="ns-cpb-wrap" style="height:3px;background:var(--brd);border-radius:2px;margin:4px 0 2px;overflow:hidden;display:none"><div id="ns-cpb" style="height:100%;background:linear-gradient(90deg,var(--warn),#ff8c42);width:0%;transition:width .08s"></div></div>
+          <div id="ns-cptxt" style="font-size:9px;color:var(--warn);font-family:'IBM Plex Mono',monospace;min-height:12px;display:none;letter-spacing:.04em"></div>
+          </div>
+        </div>
+
+        <!-- DEBUG -->
+        <div class="ss" id="ns-sec-debug">
+          <h2><span class="col-arrow">▼</span>Debug &amp; Legend</h2>
+          <div class="ss-body">
+          <div class="leg">
+            <div class="li"><div class="ls" style="background:#3a9eff"></div>CUT</div>
+            <div class="li"><div class="ls" style="background:#ff6b5b"></div>MARK</div>
+            <div class="li"><div class="ls" style="background:#b07cff"></div>ENGRAVE</div>
+            <div class="li"><div class="ls" style="background:#22a855"></div>Hide</div>
+          </div>
+          <div id="ns-eng-badge"></div>
+          <label class="dbgl" style="margin-top:7px"><input type="checkbox" id="ns-dbg"> Collision map overlay</label>
+          </div>
+        </div>
+
+        <!-- TRANSFER PENDING -->
+        <div class="ss collapsed" id="ns-pending-transfer-sec" style="display:none">
+          <h2><span class="col-arrow">▼</span>Overflow — Pending Parts</h2>
+          <div class="ss-body">
+          <div id="ns-pending-info" style="font-size:10px;color:var(--mut);margin-bottom:7px;line-height:1.5"></div>
+          <div style="font-size:9px;color:var(--dim);margin-top:4px">
+            Clears placements &amp; loads only unplaced parts — ready for next sheet or hide
+          </div>
+          </div>
+          <button class="bo" id="ns-btn-transfer" disabled style="border-color:rgba(255,176,32,.35);color:var(--warn);margin-top:6px">
+            ⇒ Transfer pending to new job
+          </button>
+          <div id="ns-transfer-hint" style="font-size:9px;color:var(--dim);margin-top:3px;font-style:italic">Export ALL first to unlock transfer</div>
+        </div>
+
+        <!-- EXPORT -->
+        <div class="ss" id="ns-sec-export">
+          <h2><span class="col-arrow">▼</span>DXF Export</h2>
+          <div class="ss-body">
+          <button class="bo bo-all" id="ns-btn-all" disabled>⬇ Export ALL → Laser (CUT + ENGRAVE + MARK)</button>
+          <hr style="border:none;border-top:1px solid var(--brd);margin:6px 0">
+          <button class="bo" id="ns-btn-cut" disabled>✂ Export CUT → CNC Cutter</button>
+          <button class="bo" id="ns-btn-mark" disabled>🖊 Export MARK + ENGRAVE → Pen/Laser</button>
+          </div>
+        </div>
+
+        <!-- G-CODE EXPORT -->
+        <div class="ss collapsed" id="ns-sec-gcode">
+          <h2><span class="col-arrow">▼</span>G-code Export</h2>
+          <div class="ss-body">
+          <div id="ns-gcTableInfo" style="font-size:10px;color:#4caf50;margin-bottom:6px;display:none"></div>
+          <div class="fr">
+            <div class="f"><label for="ns-gcController">Controller</label>
+              <select id="ns-gcController" name="ns-gcController">
+                <option value="grbl" selected>GRBL</option>
+                <option value="mach3">Mach3</option>
+                <option value="linuxcnc">LinuxCNC</option>
+              </select>
+            </div>
+            <div class="f"><label for="ns-gcMachine">Machine Type</label>
+              <select id="ns-gcMachine" name="ns-gcMachine">
+                <option value="laser" selected>Laser</option>
+                <option value="knife">Drag Knife</option>
+                <option value="router">Router</option>
+              </select>
+            </div>
+          </div>
+          <div class="fr">
+            <div class="f"><label for="ns-gcFeed">Feed (mm/min)</label><input type="number" id="ns-gcFeed" name="ns-gcFeed" value="1000" min="1" max="50000"></div>
+            <div class="f"><label for="ns-gcPower">Power/RPM (S)</label><input type="number" id="ns-gcPower" name="ns-gcPower" value="1000" min="0" max="30000"></div>
+          </div>
+          <div id="ns-gcZParams" style="display:none">
+            <div class="fr">
+              <div class="f"><label for="ns-gcZSafe">Z Safe (mm)</label><input type="number" id="ns-gcZSafe" name="ns-gcZSafe" value="5" min="0" max="100" step="0.5"></div>
+              <div class="f"><label for="ns-gcZCut">Z Cut (mm)</label><input type="number" id="ns-gcZCut" name="ns-gcZCut" value="-1" min="-100" max="0" step="0.1"></div>
+            </div>
+          </div>
+          <div style="margin:6px 0">
+            <label style="font-size:10px;color:var(--mut);cursor:pointer"><input type="checkbox" id="ns-gcHome" checked style="margin-right:3px">Home before cut (G28)</label>
+          </div>
+          <div id="ns-gcOffsetRow" style="margin-bottom:6px;display:none">
+            <label style="font-size:10px;color:var(--mut);cursor:pointer"><input type="checkbox" id="ns-gcUseOffset" checked style="margin-right:3px">Apply material offset from VisionQ</label>
+          </div>
+          <button class="bo bo-all" id="ns-btn-gcode-all" disabled style="background:linear-gradient(135deg,#1b5e20 0%,#2e7d32 100%)">Generate G-code (ALL)</button>
+          <button class="bo" id="ns-btn-gcode-cut" disabled>Generate G-code (CUT only)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Canvas Split (Parts Library top, Nesting Canvas bottom) ═══ -->
+    <div id="canvas-split">
+
+      <!-- Parts Library (top portion) -->
+      <div id="parts-library">
+        <div class="library-header">
+          <span>Parts Library</span>
+          <span class="mono" id="parts-count" style="margin-left:auto">(0 pieces)</span>
+          <button class="btn-secondary" id="btn-lib-load" style="margin-left:8px;font-size:9px;padding:2px 8px;height:18px;line-height:14px;width:auto;flex-shrink:0">+ Import</button>
+          <button class="btn-secondary" id="btn-lib-demo" style="margin-left:4px;font-size:9px;padding:2px 8px;height:18px;line-height:14px;width:auto;flex-shrink:0">Demo</button>
+        </div>
+        <div class="library-canvas">
+          <canvas id="parts-library-canvas"></canvas>
+          <!-- Placeholder when no parts loaded -->
+          <div class="canvas-placeholder" id="parts-placeholder">
+            <p style="font-size:12px">No parts loaded — Import DXF/SVG or load demo patterns</p>
+          </div>
+          <!-- Parts tile grid (patternOutQ layout — shown when parts are loaded) -->
+          <div id="parts-library-list" class="parts-tile-grid" style="display:none;position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:6px;"></div>
+        </div>
+      </div>
+
+      <!-- Resizable divider -->
+      <div id="split-divider"></div>
+
+      <!-- Nesting Canvas (bottom portion) -->
+      <main id="canvas-area" role="application" aria-label="Nesting canvas">
+        <!-- Rulers -->
+        <div class="ruler-corner"></div>
+        <div class="ruler-vertical" id="ruler-v"></div>
+        <div class="ruler-horizontal" id="ruler-h"></div>
+
+        <canvas id="nesting-canvas"></canvas>
+
+        <!-- Camera video stream (hidden unless active) -->
+        <video id="camera-video" style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1;background:#000;" playsinline autoplay muted></video>
+        <div id="camera-controls" style="display:none;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:10;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);padding:8px 12px;border-radius:var(--radius-md);gap:8px;align-items:center;">
+          <button class="btn-primary" id="btn-camera-capture" style="font-size:11px;padding:6px 12px;">Freeze Frame</button>
+          <button class="btn-secondary" id="btn-camera-resume" style="font-size:11px;padding:6px 12px;display:none;">Resume</button>
+          <button class="btn-secondary" id="btn-camera-stop" style="font-size:11px;padding:6px 12px;">Stop</button>
+        </div>
+
+        <!-- Placeholder (shown when no hide loaded) -->
+        <div class="canvas-placeholder" id="canvas-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <p>No hide loaded</p>
+          <p class="sub">Load an image or use the camera to begin</p>
+        </div>
+
+        <!-- HUD overlay -->
+        <div class="canvas-hud" id="canvas-hud" style="display:none">
+          <div class="hud-item">Zoom: <span class="hud-val" id="hud-zoom">100%</span></div>
+          <div class="hud-item">Efficiency: <span class="hud-val" id="hud-efficiency">—</span></div>
+          <div class="hud-item">Placed: <span class="hud-val" id="hud-placed">0</span></div>
+        </div>
+      </main>
+
+    </div>
+
+    <!-- ═══ ZONE C: RIGHT PANEL (Toolbox) ═══ -->
+    <aside id="right-panel" role="complementary" aria-label="Toolbox">
+      <!-- Panel header -->
+      <div class="panel-header">
+        <span class="panel-title">Toolbox</span>
+        <button class="tool-btn" data-tool="collapse-panel" title="Collapse Panel" style="width:24px;height:24px">
+          <svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      </div>
+
+      <!-- Toolbox Section: Detection Strategy -->
+      <div class="toolbox-section collapsed">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Detection Strategy</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <div class="tb-field">
+            <span class="tb-label">Strategy</span>
+            <select class="tb-select" id="strategy-select">
+              <option value="base" selected>Base — General Purpose</option>
+              <option value="optionA">Option A — Perspective Correction</option>
+              <option value="optionB">Option B — Rectify &amp; Detect</option>
+            </select>
+          </div>
+          <p class="strategy-description" id="strategy-description">Standard grid-based detection. Best for overhead orthogonal cameras.</p>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: Calibration -->
+      <div class="toolbox-section collapsed" id="sec-calibration-ui">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Calibration</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">Place white paper on the bed. Auto-detect or click 4 corners manually.</p>
+          <div class="tb-field">
+            <span class="tb-label">Paper Size</span>
+            <select class="tb-select" id="cal-paper-size">
+              <option value="297,210">A4 (297x210 mm)</option>
+              <option value="279.4,215.9" selected>Letter (11x8.5 in)</option>
+              <option value="431.8,279.4">Tabloid (17x11 in)</option>
+              <option value="custom">Custom...</option>
+            </select>
+          </div>
+          <div id="cal-custom-row" style="display:none;">
+            <div class="tb-field">
+              <span class="tb-label">W (mm)</span>
+              <input type="number" class="tb-input" id="cal-width" value="297" style="width:55px">
+            </div>
+            <div class="tb-field">
+              <span class="tb-label">H (mm)</span>
+              <input type="number" class="tb-input" id="cal-height" value="210" style="width:55px">
+            </div>
+          </div>
+          <button class="btn-primary" id="btn-auto-calibrate" style="margin-top:6px;width:100%;font-size:11px;padding:5px 8px;">Auto-Detect Paper</button>
+          <div style="display:flex;gap:4px;margin-top:4px;">
+            <button class="btn-secondary" id="btn-manual-calibrate" style="flex:1;font-size:10px;padding:4px 6px;">Manual (4 clicks)</button>
+            <button class="btn-secondary" id="btn-reset-calibration" style="flex:1;font-size:10px;padding:4px 6px;">Reset</button>
+          </div>
+          <div id="cal-feedback" style="font-size:10px;color:var(--text-muted);margin-top:6px;min-height:14px;"></div>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: CNC Table (Option B only) -->
+      <div class="toolbox-section collapsed" id="sec-cnc-table-ui" style="display:none;">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">CNC Table</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">Detect table to map material in machine coordinates.</p>
+          <div class="tb-field">
+            <span class="tb-label">Table W</span>
+            <input type="number" class="tb-input" id="table-width" value="600" min="100" style="width:55px">
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Table H</span>
+            <input type="number" class="tb-input" id="table-height" value="400" min="100" style="width:55px">
+          </div>
+          <button class="btn-primary" id="btn-auto-detect-table" style="margin-top:6px;width:100%;font-size:11px;padding:5px 8px;background:var(--accent-green);">Auto-Detect Table</button>
+          <div style="display:flex;gap:4px;margin-top:4px;">
+            <button class="btn-secondary" id="btn-manual-table" style="flex:1;font-size:10px;padding:4px 6px;">Manual (4 clicks)</button>
+            <button class="btn-secondary" id="btn-reset-table" style="flex:1;font-size:10px;padding:4px 6px;">Reset Table</button>
+          </div>
+          <div id="table-feedback" style="font-size:10px;color:var(--text-muted);margin-top:6px;min-height:14px;"></div>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: Pattern -->
+      <div class="toolbox-section collapsed">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Pattern</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <div class="tb-field">
+            <span class="tb-label">Name</span>
+            <span class="tb-value" id="tb-part-name">—</span>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Copies</span>
+            <input type="number" class="tb-input" id="tb-part-copies" value="1" min="1">
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Rotation</span>
+            <select class="tb-select" id="tb-part-rotation">
+              <option value="free">Free</option>
+              <option value="0">0 only</option>
+              <option value="90">90 steps</option>
+              <option value="180">180 steps</option>
+            </select>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Mirror</span>
+            <label class="pg-checkbox"><input type="checkbox" id="tb-part-mirror"> Allow</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: Material -->
+      <div class="toolbox-section collapsed">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Material</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <div class="tb-field">
+            <span class="tb-label">Name</span>
+            <span class="tb-value" id="tb-mat-name">Full Grain</span>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">ID</span>
+            <span class="tb-value" id="tb-mat-id">LTH-001</span>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Thickness</span>
+            <span class="tb-value" id="tb-mat-thickness">1.2 mm</span>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Hide Area</span>
+            <span class="tb-value" id="tb-mat-area">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: Appearance -->
+      <div class="toolbox-section collapsed">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Appearance</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <div class="tb-field">
+            <span class="tb-label">Fill</span>
+            <div class="tb-color-swatch" id="tb-fill-color" style="background:#60a5fa"></div>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Stroke</span>
+            <div class="tb-color-swatch" id="tb-stroke-color" style="background:#f0f4fc"></div>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Opacity</span>
+            <input type="number" class="tb-input" id="tb-opacity" value="80" min="0" max="100" style="width:44px">
+            <span style="font-size:10px;color:var(--text-muted)">%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: Layout -->
+      <div class="toolbox-section collapsed">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Layout</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <div class="tb-field">
+            <span class="tb-label">X</span>
+            <input type="number" class="tb-input" id="tb-pos-x" value="0" style="width:60px">
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Y</span>
+            <input type="number" class="tb-input" id="tb-pos-y" value="0" style="width:60px">
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Angle</span>
+            <input type="number" class="tb-input" id="tb-angle" value="0" min="0" max="360" style="width:50px">
+            <span style="font-size:10px;color:var(--text-muted)">deg</span>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Flip</span>
+            <label class="pg-checkbox"><input type="checkbox" id="tb-flip-x"> X</label>
+            <label class="pg-checkbox"><input type="checkbox" id="tb-flip-y"> Y</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: Nesting Stats -->
+      <div class="toolbox-section collapsed">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Nesting</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <div class="tb-field">
+            <span class="tb-label">Efficiency</span>
+            <span class="tb-value highlight" id="tb-efficiency" style="color:var(--accent-green)">—</span>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Placed</span>
+            <span class="tb-value" id="tb-placed">0</span>
+          </div>
+          <div class="tb-field">
+            <span class="tb-label">Remaining</span>
+            <span class="tb-value" id="tb-remaining">0</span>
+          </div>
+          <div class="progress-bar" style="margin:4px 0">
+            <div class="progress-fill" id="nesting-progress" style="width:0%"></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <button class="btn-danger" id="btn-stop-nesting" style="flex:1;font-size:10px;padding:5px 8px" disabled>Stop</button>
+            <button class="btn-secondary" id="btn-pause-nesting" style="flex:1;font-size:10px;padding:5px 8px" disabled>Pause</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: Machine Settings -->
+      <div class="toolbox-section collapsed">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Machine Settings</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <div class="form-field">
+            <label class="form-label">Machine Type</label>
+            <select class="form-input" id="machine-type">
+              <option value="laser" selected>Laser Cutter</option>
+              <option value="knife">Drag Knife</option>
+              <option value="router">CNC Router</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Controller</label>
+            <select class="form-input" id="machine-controller">
+              <option value="grbl" selected>GRBL</option>
+              <option value="mach3">Mach3</option>
+              <option value="linuxcnc">LinuxCNC</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Feed Rate (mm/min)</label>
+            <input type="number" class="form-input" id="machine-feed-rate" value="1000" min="50" max="20000">
+          </div>
+          <div class="form-field">
+            <label class="form-label">Spindle Speed (S max)</label>
+            <input type="number" class="form-input" id="machine-spindle-speed" value="1000" min="100" max="30000">
+          </div>
+          <div class="form-field" id="machine-z-group">
+            <label class="form-label">Z Safe / Z Cut (mm)</label>
+            <div style="display:flex;gap:6px">
+              <input type="number" class="form-input" id="machine-z-safe" value="5" min="0" max="100" style="width:50%">
+              <input type="number" class="form-input" id="machine-z-cut" value="-1" min="-50" max="0" style="width:50%">
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Laser On / Off Commands</label>
+            <div style="display:flex;gap:6px">
+              <input type="text" class="form-input" id="machine-laser-on" value="M3" style="width:50%" placeholder="M3">
+              <input type="text" class="form-input" id="machine-laser-off" value="M5" style="width:50%" placeholder="M5">
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">PWM Power (0–100%)</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
+              <label style="color:var(--text-muted)">Cut: <input type="number" class="form-input" id="pwm-cut" value="100" min="0" max="100" style="width:50px"></label>
+              <label style="color:var(--text-muted)">Hole: <input type="number" class="form-input" id="pwm-hole" value="80" min="0" max="100" style="width:50px"></label>
+              <label style="color:var(--text-muted)">Mark: <input type="number" class="form-input" id="pwm-mark" value="25" min="0" max="100" style="width:50px"></label>
+              <label style="color:var(--text-muted)">Engrave: <input type="number" class="form-input" id="pwm-engrave" value="15" min="0" max="100" style="width:50px"></label>
+            </div>
+          </div>
+          <label style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:4px;margin-top:4px">
+            <input type="checkbox" id="machine-home-first" checked> Home before cut (G28)
+          </label>
+        </div>
+      </div>
+
+      <!-- Toolbox Section: Export -->
+      <div class="toolbox-section collapsed">
+        <div class="toolbox-section-header" role="button" aria-expanded="false" tabindex="0">
+          <span class="toolbox-section-title">Export</span>
+          <span class="toolbox-section-toggle">&#9662;</span>
+        </div>
+        <div class="toolbox-section-body">
+          <button class="btn-secondary" id="btn-export-dxf" style="margin-bottom:4px">Export DXF</button>
+          <button class="btn-secondary" id="btn-export-svg" style="margin-bottom:4px">Export SVG</button>
+          <button class="btn-secondary" id="btn-export-gcode">Generate G-code</button>
+        </div>
+      </div>
+
+      <!-- Legacy hidden sections for JS compatibility -->
+      <div class="panel-section" id="panel-get-started" style="display:none">
+        <div class="panel-card" style="text-align:center">
+          <h4 style="font-size:14px;margin-bottom:8px">Get Started</h4>
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Load a hide image to begin</p>
+          <button class="btn-primary" id="btn-load-hide" style="margin-bottom:6px">Load Hide Image</button>
+          <button class="btn-secondary" id="btn-load-parts-panel">Load Parts (DXF/SVG)</button>
+          <button class="btn-secondary" id="btn-load-demo" style="margin-top:6px">Load Demo Patterns</button>
+        </div>
+      </div>
+      <!-- ═══ SAM MODEL STATUS ═══ -->
+      <div class="panel-section" id="panel-model-status">
+        <div class="panel-section-title">AI Model</div>
+        <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" id="model-status-text">Not loaded</span></div>
+        <div class="stat-row"><span class="stat-label">Device</span><span class="stat-value" id="model-device-text">—</span></div>
+        <div class="form-field" style="margin-top:8px">
+          <label class="form-label">Model (select before loading)</label>
+          <select class="form-input" id="model-select" style="font-size:11px;padding:4px 6px">
+            <option value="sam-vit-base" selected>SAM Base — leather, fabric, wood (~375 MB, fast)</option>
+            <option value="sam-vit-large">SAM Large — metal, reflective (~1.2 GB, medium)</option>
+            <option value="sam-vit-huge">SAM Huge — thin/fine detail (~2.5 GB, slow)</option>
+          </select>
+        </div>
+        <p style="font-size:10px;color:var(--text-muted);margin:6px 0 10px">No API key needed. Free models from HuggingFace. Downloads once, cached forever.</p>
+        <button class="btn-primary" id="btn-load-model" style="margin-bottom:4px">Load SAM Model</button>
+        <button class="btn-secondary" id="btn-unload-model" style="display:none;margin-bottom:4px">Unload (Free VRAM)</button>
+        <div class="progress-bar" id="model-progress-bar" style="height:3px;background:#333;border-radius:2px;overflow:hidden;margin:6px 0">
+          <div id="model-progress-fill" style="height:100%;background:var(--accent-blue);width:0%;transition:width 0.3s"></div>
+        </div>
+        <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px">
+          <p style="font-size:10px;color:var(--text-muted);margin-bottom:6px">USB / Portable (no internet after first backup):</p>
+          <button class="btn-secondary" id="btn-load-usb-gpu" style="font-size:10px;padding:4px 8px;margin-bottom:3px">Load from USB (GPU)</button>
+          <button class="btn-secondary" id="btn-load-usb-cpu" style="font-size:10px;padding:4px 8px;margin-bottom:3px">Load from USB (CPU/WASM)</button>
+          <button class="btn-secondary" id="btn-export-model" style="font-size:10px;padding:4px 8px;margin-bottom:3px">Backup Cache → USB</button>
+          <button class="btn-secondary" id="btn-import-model" style="font-size:10px;padding:4px 8px">Restore USB → Cache</button>
+        </div>
+      </div>
+      <div class="panel-section" id="panel-hide-props" style="display:none">
+        <div class="panel-section-title">Hide Properties</div>
+        <div class="stat-row"><span class="stat-label">Area</span><span class="stat-value" id="stat-area">—</span></div>
+        <div class="stat-row"><span class="stat-label">Perimeter</span><span class="stat-value" id="stat-perimeter">—</span></div>
+        <div class="stat-row"><span class="stat-label">Vertices</span><span class="stat-value" id="stat-vertices">—</span></div>
+        <div class="stat-row"><span class="stat-label">Calibration</span><span class="stat-value highlight" id="stat-calibration">Not set</span></div>
+        <button class="btn-secondary" style="margin-top:8px" id="btn-clear-hide">Clear Hide</button>
+      </div>
+      <div class="panel-section" id="panel-nesting-params" style="display:none">
+        <div class="panel-section-title">Nesting Parameters</div>
+        <div class="form-field">
+          <label class="form-label">Efficiency Goal (%)</label>
+          <input type="number" class="form-input" id="param-efficiency" value="85" min="50" max="99">
+        </div>
+      </div>
+      <div class="panel-section" id="panel-live-stats" style="display:none">
+        <div class="panel-section-title">Live Nesting</div>
+        <div class="stat-row"><span class="stat-label">Progress</span><span class="stat-value" id="stat-progress">0%</span></div>
+        <div class="stat-row"><span class="stat-label">Placements</span><span class="stat-value" id="stat-placements">0</span></div>
+        <div class="stat-row"><span class="stat-label">Efficiency</span><span class="stat-value highlight" id="stat-live-efficiency">0%</span></div>
+        <div class="stat-row"><span class="stat-label">Area Used</span><span class="stat-value" id="stat-area-used">0 mm2</span></div>
+      </div>
+      <div class="panel-section" id="panel-results" style="display:none">
+        <div class="panel-section-title">Results</div>
+        <div class="stat-row"><span class="stat-label">Final Efficiency</span><span class="stat-value highlight" id="stat-final-efficiency">—</span></div>
+        <div class="stat-row"><span class="stat-label">Area Used</span><span class="stat-value" id="stat-final-area">—</span></div>
+        <div class="stat-row"><span class="stat-label">Nests Created</span><span class="stat-value" id="stat-nests">—</span></div>
+        <div class="stat-row"><span class="stat-label">Total Placements</span><span class="stat-value" id="stat-total-placements">—</span></div>
+        <button class="btn-success" id="btn-export-dxf-legacy" style="margin-top:12px">Export DXF</button>
+        <button class="btn-secondary" id="btn-save-session" style="margin-top:6px">Save Session</button>
+        <button class="btn-secondary" id="btn-new-nesting" style="margin-top:6px">New Nesting</button>
+        <button class="btn-secondary" id="btn-transfer-pending" style="margin-top:6px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;">⇒ Transfer Pending to New Job</button>
+      </div>
+      <div class="panel-section" id="panel-parts-list" style="display:none">
+        <div class="panel-section-title">Loaded Parts <span class="mono" id="parts-count-legacy">(0)</span></div>
+        <div id="parts-list-container"></div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ═══ STATUS BAR (PatternSmith-style rich status) ═══ -->
+  <footer id="status-bar" role="status" aria-live="polite">
+    <div class="status-field">
+      <span class="sf-label">Units:</span>
+      <span class="sf-value">mm</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-field">
+      <span class="sf-label">Selected:</span>
+      <span class="sf-value" id="sb-selected">0</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-field">
+      <span class="sf-label">Perimeter:</span>
+      <span class="sf-value" id="sb-perimeter">—</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-field">
+      <span class="sf-label">Area:</span>
+      <span class="sf-value" id="sb-area">—</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-field">
+      <span class="sf-label">Net Area:</span>
+      <span class="sf-value" id="sb-net-area">—</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-field">
+      <span class="sf-label">Loc:</span>
+      <span class="sf-value" id="sb-location">0, 0</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-field">
+      <span class="sf-label">Rot:</span>
+      <span class="sf-value" id="sb-rotation">0.0</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-field">
+      <span class="sf-label">Nested:</span>
+      <span class="sf-value" id="sb-nested-dims">— x —</span>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-field highlight">
+      <span class="sf-label">Efficiency:</span>
+      <span class="sf-value" id="sb-efficiency">—%</span>
+    </div>
+    <span style="margin-left:auto;font-size:10px;color:var(--text-disabled)" id="status-state">CadShot Professional v1.0</span>
+  </footer>
+
+  </div><!-- /old nesting UI hidden -->
+  <!-- /page-nesting is closed above after the iframe -->
+
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container" aria-live="assertive"></div>
+
+<!-- Context Menu: Right-click on a placed part -->
+<div class="context-menu" id="ctx-menu-placement" role="menu" style="display:none">
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="delete">Delete <span class="shortcut">Del</span></div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="rotate-90">Rotate 90°</div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="flip-h">Flip Horizontal</div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="flip-v">Flip Vertical</div>
+  <div class="ctx-separator"></div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="move-front">Move to Front</div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="move-back">Move to Back</div>
+  <div class="ctx-separator"></div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="duplicate">Duplicate</div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="inspect">Inspect</div>
+</div>
+
+<!-- Context Menu: Right-click on empty canvas -->
+<div class="context-menu" id="ctx-menu-canvas" role="menu" style="display:none">
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="clear-all">Clear All Placements</div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="undo">Undo Last</div>
+  <div class="ctx-separator"></div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="zoom-fit">Zoom to Fit <span class="shortcut">Shift+2</span></div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="zoom-100">Zoom 100% <span class="shortcut">Shift+1</span></div>
+  <div class="ctx-separator"></div>
+  <div class="ctx-item" role="menuitem" tabindex="-1" data-action="toggle-grid">Toggle Grid <span class="shortcut">H</span></div>
+</div>
+
+<!-- ═══ CHECKOUT WIZARD MODAL ═══ -->
+<div id="checkout-modal" class="modal-overlay" style="display:none">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="modal-title" id="checkout-title">Checkout — Step 1: Quantities</h3>
+      <button class="modal-close" id="checkout-close">&times;</button>
+    </div>
+    <div class="modal-body" id="checkout-body"></div>
+    <div class="modal-footer">
+      <span class="modal-summary" id="checkout-summary"></span>
+      <button class="btn-secondary" id="checkout-back" style="display:none">Back</button>
+      <button class="btn-primary" id="checkout-next">Next: Materials</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+
+<!-- Wire up Image/Parts/Detect buttons and iframe communication -->
+<script>
+(function() {
+  'use strict';
+
+  // Image button: open cncVisionPRO_B.html for leather detection (SAM AI)
+  document.getElementById('mn-image').addEventListener('click', function() {
+    window.open('cncVisionPRO_B.html', '_blank');
+  });
+
+  // Detect button: same as Image — opens cncVisionPRO_B.html
+  document.getElementById('mn-detect').addEventListener('click', function() {
+    window.open('cncVisionPRO_B.html', '_blank');
+  });
+
+  // Parts button: open file picker for DXF/SVG, forward files to PatterNestQ iframe
+  var fiParts = document.getElementById('fi-mn-parts');
+  document.getElementById('mn-parts').addEventListener('click', function() {
+    fiParts.click();
+  });
+
+  fiParts.addEventListener('change', function(e) {
+    var files = e.target.files;
+    if (!files || !files.length) return;
+    var nestFrame = document.getElementById('iframe-nesting');
+    if (nestFrame && nestFrame.contentWindow) {
+      // Send each file as an ArrayBuffer with filename so the iframe can parse it
+      Array.from(files).forEach(function(file) {
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          nestFrame.contentWindow.postMessage({
+            type: 'load-part-file',
+            name: file.name,
+            content: ev.target.result
+          }, '*');
+        };
+        reader.readAsText(file);
+      });
+    }
+    fiParts.value = '';
+  });
+})();
+</script>
+</body>
+</html>

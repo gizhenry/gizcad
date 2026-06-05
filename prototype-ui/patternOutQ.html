@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PatternOQ — Nesting Checkout</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800;900&family=Archivo+Narrow:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0a0b0e;--ink2:#111318;--ink3:#181b20;--ink4:#1f232a;
+  --wire:#272d38;--wire2:#323b4a;--wire3:#3d4a5c;
+  --ghost:#546070;--mist:#7a8fa8;--fog:#b0c0d4;--snow:#dde8f4;--white:#eef4fc;
+  --orange:#ff9500;--orange-g:rgba(255,149,0,.08);--orange-gl:rgba(255,149,0,.22);
+  --lime:#b8ff47;--lime-g:rgba(184,255,71,.08);
+  --teal:#00cc88;--teal-g:rgba(0,204,136,.08);--teal-gl:rgba(0,204,136,.2);
+  --rose:#ff4466;--rose-g:rgba(255,68,102,.08);
+  --cyan:#00d4ff;--amber:#ffaa00;
+}
+html,body{height:100%;overflow:hidden;background:var(--ink)}
+body{font-family:'Archivo',sans-serif;color:var(--fog);font-size:14px;display:flex;flex-direction:column}
+
+/* ── HEADER ──────────────────────────────────────────── */
+#hdr{height:56px;min-height:56px;background:var(--ink2);border-bottom:1px solid var(--wire);display:flex;align-items:center;padding:0 24px;gap:14px;flex-shrink:0;position:relative;z-index:10}
+#hdr::after{content:'';position:absolute;bottom:-1px;left:0;width:160px;height:1px;background:linear-gradient(90deg,var(--orange),transparent);opacity:.7}
+.brand{display:flex;align-items:center;gap:10px}
+.bmark{width:34px;height:34px;background:var(--orange);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);display:flex;align-items:center;justify-content:center}
+.bmark svg{width:15px;height:15px;fill:var(--ink)}
+.bname{font-size:17px;font-weight:900;color:var(--white);letter-spacing:-.02em}
+.bname em{color:var(--orange);font-style:normal}
+.bsub{font-family:'JetBrains Mono',monospace;font-size:7.5px;color:var(--ghost);letter-spacing:.14em;text-transform:uppercase;margin-top:1px}
+.hright{margin-left:auto;display:flex;align-items:center;gap:8px}
+.hbtn{font-family:'Archivo',sans-serif;font-size:10px;font-weight:700;padding:6px 14px;border-radius:5px;cursor:pointer;border:none;transition:all .15s;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.hbtn-ghost{background:transparent;color:var(--mist);border:1px solid var(--wire2)}.hbtn-ghost:hover{border-color:var(--wire3);color:var(--fog)}
+.nav-link{background:none;border:none;color:var(--ghost);padding:2px 6px;cursor:pointer;font-size:10px;font-family:'JetBrains Mono',monospace;transition:all .15s;text-decoration:none;white-space:nowrap}
+.nav-link:hover{color:var(--orange)}
+.nav-link .arrow{opacity:.5}
+.hsep{width:1px;height:24px;background:var(--wire);margin:0 4px;flex-shrink:0}
+
+/* ── MAIN ────────────────────────────────────────────── */
+#main{flex:1;overflow-y:auto;padding:28px 24px 60px}
+#main::-webkit-scrollbar{width:4px}#main::-webkit-scrollbar-thumb{background:var(--wire2);border-radius:2px}
+.container{max-width:900px;margin:0 auto}
+.sec{margin-bottom:28px}
+.sechd{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--ghost);letter-spacing:.14em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.sechd::before{content:'';width:3px;height:11px;background:var(--orange);border-radius:1px;flex-shrink:0}
+.sechd .step{font-size:10px;font-weight:800;color:var(--orange);margin-right:2px}
+
+/* ── GALLERY ─────────────────────────────────────────── */
+.gal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.gal-card{position:relative;background:var(--ink3);border:2px solid var(--wire);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s;aspect-ratio:4/5}
+.gal-card:hover{border-color:var(--wire3);transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.gal-card.sel{border-color:var(--orange);box-shadow:0 0 0 2px var(--orange-gl),0 8px 32px rgba(255,149,0,.15)}
+.gal-img{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:opacity .25s}
+.gal-img img{width:100%;height:100%;object-fit:cover}
+.gal-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;height:100%;background:linear-gradient(135deg,var(--ink3),var(--ink4))}
+.gal-placeholder-icon{font-size:36px;opacity:.18;line-height:1}
+.gal-placeholder-txt{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--wire3);text-transform:uppercase;letter-spacing:.12em}
+.gal-info{position:absolute;inset:0;background:rgba(10,11,14,.92);display:flex;flex-direction:column;justify-content:center;padding:20px;opacity:0;transition:opacity .25s;pointer-events:none}
+.gal-card:hover .gal-info{opacity:1}
+.gal-card:hover .gal-img{opacity:.15}
+.gi-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--wire)}.gi-row:last-child{border:none}
+.gi-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ghost);text-transform:uppercase;letter-spacing:.08em}
+.gi-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--snow)}
+.gi-val.orange{color:var(--orange)}.gi-val.teal{color:var(--teal)}.gi-val.cyan{color:var(--cyan)}
+.gi-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.gi-chip{font-size:8px;font-weight:600;padding:2px 7px;border-radius:3px;border:1px solid;white-space:nowrap}
+.gi-date{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--wire3);margin-top:10px}
+.gal-foot{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(10,11,14,.85) 30%,rgba(10,11,14,.95));padding:12px 14px 10px;z-index:2}
+.gal-name{font-size:14px;font-weight:800;color:var(--white);line-height:1.3;outline:none;border-radius:3px;padding:1px 3px;margin:-1px -3px;transition:background .15s;display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gal-name:hover{background:rgba(255,255,255,.06)}.gal-name:focus{background:rgba(255,149,0,.12);white-space:normal}
+.gal-size-range{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ghost);margin-top:3px}
+.gal-size-range b{color:var(--orange);font-weight:600}
+.gal-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:3;opacity:0;transition:opacity .15s}
+.gal-card:hover .gal-actions{opacity:1}
+.ga-btn{width:28px;height:28px;border-radius:5px;border:1px solid var(--wire);background:rgba(10,11,14,.8);color:var(--ghost);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;backdrop-filter:blur(4px)}
+.ga-btn:hover{border-color:var(--wire3);color:var(--fog)}
+.ga-btn.del:hover{border-color:var(--rose);color:var(--rose);background:var(--rose-g)}
+.ga-btn.img:hover{border-color:var(--orange);color:var(--orange);background:var(--orange-g)}
+
+/* ── ARCHIVE ─────────────────────────────────────────── */
+.gal-card.arc{opacity:.5;border-style:dashed}.gal-card.arc:hover{opacity:.85}
+.gal-card.arc .gal-foot{background:linear-gradient(transparent,rgba(10,11,14,.9) 30%)}
+.arc-restore{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);z-index:4;font-family:'Archivo',sans-serif;font-size:10px;font-weight:700;padding:6px 16px;border-radius:5px;cursor:pointer;border:1.5px solid var(--teal-gl);background:var(--teal-g);color:var(--teal);text-transform:uppercase;letter-spacing:.06em;opacity:0;transition:all .15s;white-space:nowrap}
+.gal-card.arc:hover .arc-restore{opacity:1}.arc-restore:hover{background:rgba(0,204,136,.2)}
+
+/* ── EMPTY ───────────────────────────────────────────── */
+.empty{text-align:center;padding:80px 24px}
+.empty-hex{width:80px;height:80px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);background:var(--wire);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 18px}
+.empty-title{font-size:20px;font-weight:900;color:var(--wire2);margin-bottom:8px}
+.empty-sub{font-size:12px;color:var(--ghost);max-width:380px;margin:0 auto;line-height:1.8}
+
+/* ── MODAL OVERLAY ───────────────────────────────────── */
+.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(10,11,14,.82);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--ink2);border:1.5px solid var(--wire);border-radius:12px;width:94%;max-width:620px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 16px 64px rgba(0,0,0,.6);overflow:hidden;position:relative}
+.modal-hdr{padding:18px 24px 14px;border-bottom:1px solid var(--wire);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.modal-step{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:var(--ink);background:var(--orange);width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.modal-title{font-size:16px;font-weight:800;color:var(--white)}
+.modal-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ghost);margin-left:auto;white-space:nowrap}
+.modal-body{flex:1;overflow-y:auto;padding:18px 24px}
+.modal-body::-webkit-scrollbar{width:3px}.modal-body::-webkit-scrollbar-thumb{background:var(--wire2);border-radius:2px}
+.modal-ftr{padding:14px 24px;border-top:1px solid var(--wire);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.mbtn{font-family:'Archivo',sans-serif;font-size:11px;font-weight:700;padding:10px 22px;border-radius:6px;cursor:pointer;border:1.5px solid;transition:all .15s;letter-spacing:.04em;text-transform:uppercase}
+.mbtn-back{background:transparent;color:var(--mist);border-color:var(--wire2)}.mbtn-back:hover{border-color:var(--wire3);color:var(--fog)}
+.mbtn-ok{background:var(--orange);color:var(--ink);border-color:var(--orange)}.mbtn-ok:hover:not(:disabled){background:#ffaa22;transform:translateY(-1px)}.mbtn-ok:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.mbtn-export{background:var(--lime);color:var(--ink);border-color:var(--lime)}.mbtn-export:hover:not(:disabled){background:#ceff6a;transform:translateY(-1px)}.mbtn-export:disabled{opacity:.3;cursor:not-allowed;transform:none}
+.modal-spacer{flex:1}
+
+/* qty table inside modal */
+.mfill{display:flex;align-items:center;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.mfill-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ghost);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+.mfill-inp{width:70px;height:34px;background:var(--ink);border:1.5px solid var(--wire2);color:var(--white);padding:0 8px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;text-align:center;outline:none;transition:border-color .15s}
+.mfill-inp:focus{border-color:var(--orange)}
+.mqbtn{font-family:'Archivo',sans-serif;font-size:9px;font-weight:700;padding:7px 10px;border-radius:4px;cursor:pointer;border:1px solid var(--wire2);background:var(--ink);color:var(--fog);transition:all .13s;text-transform:uppercase}.mqbtn:hover{border-color:var(--orange);color:var(--orange)}
+.mqbtn-apply{background:var(--orange-g);color:var(--orange);border-color:var(--orange-gl)}.mqbtn-apply:hover{background:rgba(255,149,0,.2)}
+
+.mtable{width:100%;border-collapse:separate;border-spacing:0;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;overflow:hidden}
+.mtable th{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ghost);text-transform:uppercase;letter-spacing:.1em;padding:10px 12px;text-align:left;background:var(--ink2);border-bottom:1px solid var(--wire)}
+.mtable td{padding:8px 12px;border-bottom:1px solid var(--wire)}.mtable tr:last-child td{border-bottom:none}
+.mtable tr:hover td{background:rgba(255,149,0,.03)}
+.mq-sz{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--snow)}
+.mq-ct{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mist)}
+.mq-inp{width:76px;height:36px;background:var(--ink);border:1.5px solid var(--wire2);color:var(--white);padding:0 10px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;text-align:center;outline:none;transition:all .15s}
+.mq-inp:focus{border-color:var(--orange);box-shadow:0 0 0 2px var(--orange-g)}
+.mq-inp.has{border-color:var(--orange-gl);color:var(--orange)}
+.mq-total{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ghost);text-align:right;white-space:nowrap}.mq-total b{color:var(--fog)}
+.mq-summary{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--ink3);border:1px solid var(--wire);border-radius:6px;margin-top:12px}
+.mq-summary-lbl{font-size:12px;color:var(--mist)}.mq-summary-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:900;color:var(--orange)}
+
+/* material assignment */
+.mat-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--wire)}.mat-row:last-child{border:none}
+.mat-sw{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.mat-name{font-size:13px;font-weight:700;color:var(--snow);flex-shrink:0;min-width:100px}
+.mat-arrow{color:var(--wire3);font-size:11px;flex-shrink:0}
+.mat-inp{flex:1;height:36px;background:var(--ink);border:1.5px solid var(--wire2);color:var(--white);padding:0 12px;border-radius:5px;font-family:'Archivo',sans-serif;font-size:13px;font-weight:600;outline:none;transition:border-color .15s}
+.mat-inp:focus{border-color:var(--teal)}
+.mat-inp::placeholder{color:var(--wire3)}
+.mat-presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:14px}
+.mat-preset{font-size:9px;font-weight:600;padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid var(--wire2);background:var(--ink);color:var(--fog);transition:all .13s;white-space:nowrap}.mat-preset:hover{border-color:var(--teal);color:var(--teal)}
+.mat-group-preview{margin-top:14px;background:var(--ink3);border:1px solid var(--wire);border-radius:8px;padding:12px 14px}
+.mg-title{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ghost);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.mg-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--wire)}.mg-row:last-child{border:none}
+.mg-mat{font-size:12px;font-weight:700;color:var(--teal);flex:1}
+.mg-parts{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ghost)}
+.mg-file{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--orange);white-space:nowrap}
+
+/* ── TOAST & FOOTER ──────────────────────────────────── */
+#toast{position:fixed;bottom:34px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--ink2);border:1px solid var(--wire2);border-radius:6px;padding:8px 18px;font-size:12px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:700;opacity:0;transition:all .2s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.orange{border-color:var(--orange);color:var(--orange)}
+#toast.lime{border-color:var(--lime);color:var(--lime)}
+#toast.rose{border-color:var(--rose);color:var(--rose)}
+#toast.teal{border-color:var(--teal);color:var(--teal)}
+
+#ftr{height:28px;min-height:28px;background:var(--ink2);border-top:1px solid var(--wire);display:flex;align-items:center;justify-content:center;padding:0 16px;flex-shrink:0}
+.ftr-txt{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ghost);letter-spacing:.05em}
+.ftr-txt a{color:var(--wire3);text-decoration:none}.ftr-txt a:hover{color:var(--fog)}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--wire2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div class="brand">
+    <div class="bmark"><svg viewBox="0 0 20 20"><polygon points="10,2 18,6.5 18,13.5 10,18 2,13.5 2,6.5"/></svg></div>
+    <div><div class="bname">Pattern<em>OQ</em></div><div class="bsub">Nesting Checkout</div></div>
+  </div>
+  <div class="hsep"></div>
+  <a class="nav-link" href="#" onclick="if(window.parent !== window) { window.parent.postMessage({ type: 'navigate', view: 'patterninq' }, '*'); } else { window.location.href='patternINQ.html'; }" title="Pattern Organizer"><span class="arrow">←</span> PatternINQ</a>
+  <a class="nav-link" href="#" onclick="if(window.parent !== window) { window.parent.postMessage({ type: 'navigate', view: 'nesting' }, '*'); } else { window.location.href='PatterNestQ.html'; }" title="GPU Parallel Nester"><span class="arrow">←</span> PatterNestQ</a>
+  <a class="nav-link" href="#" onclick="if(window.parent !== window) { window.parent.postMessage({ type: 'navigate', view: 'vision' }, '*'); } else { window.location.href='patternvisionQ.html'; }" title="Leather Hide Vision">VisionQ</a>
+  <div class="hright">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ghost)" id="db-count">0 patterns</span>
+    <button class="hbtn hbtn-ghost" id="btn-import-db" onclick="document.getElementById('db-fi').click()">Import DB</button>
+    <button class="hbtn hbtn-ghost" onclick="loadDB()">&#8635; Refresh</button>
+    <a href="#" onclick="if(window.parent !== window) { window.parent.postMessage({ type: 'navigate', view: 'patterninq' }, '*'); } else { window.location.href='patternINQ.html'; }" class="hbtn hbtn-ghost" id="link-iq" style="text-decoration:none;display:none">&#8592; PatternIQ</a>
+  </div>
+</div>
+
+<div id="main">
+<div class="container">
+  <div class="sec">
+    <div class="sechd"><span class="step">1</span> Select Pattern</div>
+    <div id="pat-area"></div>
+  </div>
+  <div class="sec" id="arc-sec" style="display:none">
+    <div class="sechd" style="margin-top:12px"><span class="step" style="color:var(--amber)">&#9679;</span> Archive</div>
+    <div style="font-size:11px;color:var(--ghost);margin-bottom:12px">Older patterns moved here automatically. Restore any to use it again.</div>
+    <div id="arc-grid" class="gal-grid"></div>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: STEP 1 — Quantities -->
+<div class="modal-bg" id="modal-qty">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-step">1</div>
+      <div class="modal-title">Order Quantities</div>
+      <div class="modal-sub" id="mqty-name"></div>
+    </div>
+    <div class="modal-body" id="mqty-body"></div>
+    <div class="modal-ftr">
+      <button class="mbtn mbtn-back" onclick="closeQtyModal()">&#8592; Back</button>
+      <div class="modal-spacer"></div>
+      <button class="mbtn mbtn-ok" id="mqty-ok" disabled onclick="openMatModal()">OK — Assign Materials &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: STEP 2 — Materials -->
+<div class="modal-bg" id="modal-mat">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-step">2</div>
+      <div class="modal-title">Assign Materials</div>
+      <div class="modal-sub" id="mmat-name"></div>
+    </div>
+    <div class="modal-body" id="mmat-body"></div>
+    <div class="modal-ftr">
+      <button class="mbtn mbtn-back" onclick="backToQty()">&#8592; Back to Quantities</button>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-left:12px">
+        <input type="checkbox" id="chk-mirror" style="accent-color:var(--orange);width:14px;height:14px">
+        <span style="font-family:'Archivo Narrow',sans-serif;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mist)">L/R Pair</span>
+      </label>
+      <div class="modal-spacer"></div>
+      <button class="mbtn mbtn-nest" id="mmat-nest" disabled onclick="pushToNesting()" style="background:linear-gradient(135deg,#00c896,#0088ff);color:#000;font-weight:700;letter-spacing:.03em">&#9654; Push to Nesting</button>
+      <button class="mbtn mbtn-ok" id="mmat-combined" disabled onclick="exportCombined()">Combined DXF</button>
+      <button class="mbtn mbtn-export" id="mmat-export" disabled onclick="exportByMaterial()">Export per Material</button>
+    </div>
+  </div>
+</div>
+
+<div id="ftr">
+  <div class="ftr-txt">PatternOQ -- Nesting Checkout &nbsp;&middot;&nbsp; Patterns published from <a href="patterniq.html">PatternIQ PRO</a></div>
+</div>
+
+<div id="toast"></div>
+<input type="file" id="img-fi" accept="image/*,.gif" style="display:none">
+<input type="file" id="db-fi" accept=".json" style="display:none">
+
+<script>
+const DB_KEY='patterniq_nesting_db';
+const MAT_CACHE_KEY='patterniq_mat_cache';
+function _loadMatCache(){try{return JSON.parse(localStorage.getItem(MAT_CACHE_KEY))||{};}catch{return{};}}
+function _saveMatCache(patId,mats){const c=_loadMatCache();c[patId]=mats;_tryLS(MAT_CACHE_KEY,JSON.stringify(c));}
+const IMG_KEY='patterniq_nesting_images';
+const ARCHIVE_KEY='patterniq_nesting_archive';
+const ARCHIVE_IMG_KEY='patterniq_nesting_archive_images';
+const IDB_NAME='PatternIQ_NestingDB';
+const IDB_VER=2;
+const MATERIAL_PRESETS=['Leather','Synthetic Leather','Mesh','Suede','Canvas','Nylon','Rubber','EVA Foam','PU Foam','Textile','Lining Fabric','Nonwoven'];
+
+let _idb=null;
+let patterns=[];
+let images={};
+let selected=null;
+let quantities={};
+let materials={};
+let pendingImgId=null;
+
+// ── IndexedDB ───────────────────────────────────────────
+function openIDB(){
+  return new Promise(resolve=>{
+    if(_idb){resolve(_idb);return;}
+    const req=indexedDB.open(IDB_NAME,IDB_VER);
+    req.onupgradeneeded=function(e){
+      const db=e.target.result;
+      ['patterns','images','backups','archive','archive_images'].forEach(s=>{
+        if(!db.objectStoreNames.contains(s))db.createObjectStore(s,{keyPath:s==='backups'?'ts':'id'});
+      });
+    };
+    req.onsuccess=function(e){_idb=e.target.result;resolve(_idb);};
+    req.onerror=function(){resolve(null);};
+  });
+}
+function idbGetAll(store){
+  return openIDB().then(db=>{
+    if(!db)return null;
+    return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly');const r=tx.objectStore(store).getAll();r.onsuccess=()=>resolve(r.result);r.onerror=reject;});
+  });
+}
+
+// ── Storage helpers ─────────────────────────────────────
+function loadImages(){try{images=JSON.parse(localStorage.getItem(IMG_KEY))||{};}catch{images={};}}
+function saveImages(){_tryLS(IMG_KEY,JSON.stringify(images));}
+function getArchive(){try{return JSON.parse(localStorage.getItem(ARCHIVE_KEY))||[];}catch{return[];}}
+function getArchiveImgs(){try{return JSON.parse(localStorage.getItem(ARCHIVE_IMG_KEY))||{};}catch{return{};}}
+
+async function loadDB(){
+  const idbPats=await idbGetAll('patterns');
+  if(idbPats&&idbPats.length){
+    patterns=idbPats;
+  } else {
+    try{patterns=JSON.parse(localStorage.getItem(DB_KEY))||[];}catch{patterns=[];}
+  }
+  loadImages();
+  document.getElementById('db-count').textContent=patterns.length+' pattern'+(patterns.length!==1?'s':'');
+  renderGallery();renderArchive();
+}
+
+function _tryLS(k,v){try{localStorage.setItem(k,v);}catch(e){console.warn('localStorage quota exceeded for '+k+', using IndexedDB only');}}
+
+async function initDB(){
+  try{patterns=JSON.parse(localStorage.getItem(DB_KEY))||[];}catch{patterns=[];}
+  // Always check IndexedDB — localStorage may have failed due to quota
+  const idbPats=await idbGetAll('patterns');
+  if(idbPats&&idbPats.length>patterns.length){
+    patterns=idbPats;
+    _tryLS(DB_KEY,JSON.stringify(patterns));
+    const idbImgs=await idbGetAll('images');
+    if(idbImgs&&idbImgs.length){const o={};idbImgs.forEach(i=>{o[i.id]=i.data;});_tryLS(IMG_KEY,JSON.stringify(o));}
+    showToast('DB restored from safe storage ('+patterns.length+' patterns)','teal');
+  }
+  if(!getArchive().length){
+    const idbArc=await idbGetAll('archive');
+    if(idbArc&&idbArc.length){
+      _tryLS(ARCHIVE_KEY,JSON.stringify(idbArc));
+      const idbArcImgs=await idbGetAll('archive_images');
+      if(idbArcImgs&&idbArcImgs.length){const o={};idbArcImgs.forEach(i=>{o[i.id]=i.data;});_tryLS(ARCHIVE_IMG_KEY,JSON.stringify(o));}
+    }
+  }
+  loadImages();
+  document.getElementById('db-count').textContent=patterns.length+' pattern'+(patterns.length!==1?'s':'');
+  renderGallery();renderArchive();
+}
+
+// ── Helpers ─────────────────────────────────────────────
+function sizeRange(sizes){
+  if(!sizes||!sizes.length)return '--';
+  const nums=[...sizes].map(s=>parseFloat(s.label)||0).sort((a,b)=>a-b);
+  return nums[0]+' - '+nums[nums.length-1];
+}
+function pcsPerSize(pat){
+  if(!pat.sizes||!pat.sizes.length)return 0;
+  const first=[...pat.sizes].sort((a,b)=>(parseFloat(a.label)||0)-(parseFloat(b.label)||0))[0];
+  return pat.pieces?pat.pieces.filter(p=>p.sizeId===first.id).length:0;
+}
+function fmt(n){return n.toLocaleString();}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+let _tt;
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='show '+(type||'orange');clearTimeout(_tt);_tt=setTimeout(()=>t.className='',2800);}
+
+// ── Gallery ─────────────────────────────────────────────
+function renderGallery(){
+  const area=document.getElementById('pat-area');
+  if(!patterns.length){
+    area.innerHTML='<div class="empty"><div class="empty-hex">&#11042;</div><div class="empty-title">No Patterns Published</div><div class="empty-sub">Import a <code>.json</code> database exported from PatternIQ, or load a demo to try it out.</div><div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap"><button class="mqbtn mqbtn-apply" style="padding:10px 20px;font-size:11px" onclick="document.getElementById(\'db-fi\').click()">Import DB (.json)</button><button class="mqbtn" style="padding:10px 20px;font-size:11px" onclick="loadDemo()">Load Demo Pattern</button></div></div>';
+    return;
+  }
+  let html='<div class="gal-grid">';
+  patterns.forEach(pat=>{
+    const partCount=pat.parts?pat.parts.length:0;
+    const sizeCount=pat.sizes?pat.sizes.length:0;
+    const range=sizeRange(pat.sizes);
+    const perSize=pcsPerSize(pat);
+    const totalPcs=pat.pieces?pat.pieces.length:0;
+    const date=pat.savedAt?new Date(pat.savedAt):null;
+    const dateStr=date?date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    const imgSrc=images[pat.id]||'';
+
+    html+='<div class="gal-card" data-id="'+pat.id+'" onclick="selectPattern(\''+pat.id+'\')">';
+    html+='<div class="gal-actions">';
+    html+='<button class="ga-btn img" onclick="event.stopPropagation();uploadImg(\''+pat.id+'\')" title="Upload photo">&#128247;</button>';
+    html+='<button class="ga-btn del" onclick="event.stopPropagation();deletePattern(\''+pat.id+'\')" title="Delete">&times;</button>';
+    html+='</div>';
+    html+='<div class="gal-img">';
+    if(imgSrc)html+='<img src="'+imgSrc+'" alt="'+esc(pat.name)+'">';
+    else html+='<div class="gal-placeholder"><div class="gal-placeholder-icon">&#128094;</div><div class="gal-placeholder-txt">Click &#128247; to add photo</div></div>';
+    html+='</div>';
+    html+='<div class="gal-info">';
+    html+='<div class="gi-row"><span class="gi-label">Sizes</span><span class="gi-val orange">'+range+'</span></div>';
+    html+='<div class="gi-row"><span class="gi-label">Size count</span><span class="gi-val">'+sizeCount+'</span></div>';
+    html+='<div class="gi-row"><span class="gi-label">Parts / size</span><span class="gi-val teal">'+perSize+'</span></div>';
+    html+='<div class="gi-row"><span class="gi-label">Total pieces</span><span class="gi-val cyan">'+totalPcs+'</span></div>';
+    html+='<div class="gi-chips">';
+    (pat.parts||[]).slice(0,8).forEach(p=>{html+='<span class="gi-chip" style="color:'+p.color+';border-color:'+p.color+'40;background:'+p.color+'12">'+esc(p.name)+'</span>';});
+    if(partCount>8)html+='<span class="gi-chip" style="color:var(--ghost);border-color:var(--wire)">+'+(partCount-8)+'</span>';
+    html+='</div>';
+    if(dateStr)html+='<div class="gi-date">Published '+dateStr+'</div>';
+    html+='</div>';
+    html+='<div class="gal-foot">';
+    html+='<span class="gal-name" contenteditable="true" spellcheck="false" data-id="'+pat.id+'" onclick="event.stopPropagation()" title="Click to rename">'+esc(pat.name)+'</span>';
+    html+='<div class="gal-size-range"><b>'+range+'</b> &middot; '+partCount+' parts</div>';
+    html+='</div></div>';
+  });
+  html+='</div>';
+  area.innerHTML=html;
+
+  area.querySelectorAll('.gal-name').forEach(el=>{
+    el.addEventListener('blur',function(){
+      const id=this.dataset.id;const nm=this.textContent.trim();if(!nm)return;
+      const pat=patterns.find(p=>p.id===id);
+      if(pat&&pat.name!==nm){pat.name=nm;_tryLS(DB_KEY,JSON.stringify(patterns));showToast('Renamed to "'+nm+'"','orange');}
+    });
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();this.blur();}});
+  });
+}
+
+function renderArchive(){
+  const archive=getArchive();const sec=document.getElementById('arc-sec');
+  if(!archive.length){sec.style.display='none';return;}
+  sec.style.display='';
+  const arcImgs=getArchiveImgs();const grid=document.getElementById('arc-grid');let html='';
+  archive.forEach(pat=>{
+    const partCount=pat.parts?pat.parts.length:0;const range=sizeRange(pat.sizes);
+    const imgSrc=arcImgs[pat.id]||'';
+    const date=pat.archivedAt?new Date(pat.archivedAt):null;
+    const dateStr=date?date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    html+='<div class="gal-card arc">';
+    html+='<div class="gal-img">';
+    if(imgSrc)html+='<img src="'+imgSrc+'" alt="'+esc(pat.name)+'">';
+    else html+='<div class="gal-placeholder"><div class="gal-placeholder-icon">&#128094;</div><div class="gal-placeholder-txt">Archived</div></div>';
+    html+='</div>';
+    html+='<div class="gal-info">';
+    html+='<div class="gi-row"><span class="gi-label">Sizes</span><span class="gi-val" style="color:var(--amber)">'+range+'</span></div>';
+    html+='<div class="gi-row"><span class="gi-label">Parts</span><span class="gi-val">'+partCount+'</span></div>';
+    if(dateStr)html+='<div class="gi-date">Archived '+dateStr+'</div>';
+    html+='</div>';
+    html+='<button class="arc-restore" onclick="event.stopPropagation();restoreFromArchive(\''+pat.id+'\')">Restore</button>';
+    html+='<div class="gal-foot"><span class="gal-name" style="pointer-events:none">'+esc(pat.name)+'</span>';
+    html+='<div class="gal-size-range" style="color:var(--wire3)"><b style="color:var(--amber)">'+range+'</b> &middot; '+partCount+' parts</div></div></div>';
+  });
+  grid.innerHTML=html;
+}
+
+function restoreFromArchive(patId){
+  const archive=getArchive();const pat=archive.find(p=>p.id===patId);if(!pat)return;
+  delete pat.archivedAt;pat.lastUsedAt=Date.now();
+  _tryLS(ARCHIVE_KEY,JSON.stringify(archive.filter(p=>p.id!==patId)));
+  patterns.push(pat);_tryLS(DB_KEY,JSON.stringify(patterns));
+  const arcImgs=getArchiveImgs();
+  if(arcImgs[patId]){images[patId]=arcImgs[patId];delete arcImgs[patId];saveImages();_tryLS(ARCHIVE_IMG_KEY,JSON.stringify(arcImgs));}
+  renderGallery();renderArchive();showToast('Restored "'+pat.name+'"','teal');
+}
+
+function uploadImg(patId){pendingImgId=patId;document.getElementById('img-fi').click();}
+document.getElementById('img-fi').addEventListener('change',function(e){
+  if(!e.target.files.length||!pendingImgId)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){images[pendingImgId]=ev.target.result;saveImages();renderGallery();showToast('Photo updated','orange');pendingImgId=null;};
+  reader.readAsDataURL(e.target.files[0]);e.target.value='';
+});
+
+function deletePattern(id){
+  const pat=patterns.find(p=>p.id===id);if(!pat)return;
+  if(!confirm('Delete "'+pat.name+'" from the nesting database?'))return;
+  patterns=patterns.filter(p=>p.id!==id);_tryLS(DB_KEY,JSON.stringify(patterns));
+  delete images[id];saveImages();loadDB();showToast('Pattern deleted','rose');
+}
+
+function loadDemo(){
+  const sizeLabels=['36','37','38','39','40','41','42','43','44'];
+  const sizes=sizeLabels.map(l=>({id:'sz_'+l,label:l}));
+  const partDefs=[
+    {name:'Upper',color:'#b8ff47',pts:[0,0,60,0,120,10,130,40,110,70,80,80,40,80,10,70,0,40]},
+    {name:'Lining',color:'#00d4ff',pts:[0,0,100,0,100,60,50,85,0,60]},
+    {name:'Toe Cap',color:'#ffaa00',pts:[0,20,10,0,40,0,50,20,40,40,10,40]},
+    {name:'Sole',color:'#ff4466',pts:[0,15,15,0,125,0,140,15,140,40,130,50,10,50,0,40]},
+    {name:'Insole',color:'#8855ff',pts:[10,0,120,0,130,45,65,55,0,45]},
+    {name:'Counter',color:'#00cc88',pts:[0,0,40,0,50,15,45,50,30,60,10,60,0,30]},
+    {name:'Tongue',color:'#ff8833',pts:[5,0,25,0,30,20,28,60,22,80,8,80,2,60,0,20]},
+    {name:'Collar',color:'#ff55cc',pts:[0,0,80,0,85,10,80,22,5,22,0,10]},
+  ];
+  const parts=partDefs.map(d=>({id:'pt_'+d.name.toLowerCase().replace(/\s/g,'_'),name:d.name,color:d.color}));
+  const pieces=[];
+  sizeLabels.forEach((sz,si)=>{
+    const scale=0.88+si*0.015;
+    partDefs.forEach((def,ti)=>{
+      const flat=def.pts;const pts=[];
+      for(let k=0;k<flat.length;k+=2)pts.push([flat[k]*scale,flat[k+1]*scale+ti*100]);
+      pieces.push({pts,sizeId:'sz_'+sz,partId:parts[ti].id,layer:def.name,area:pArea(pts),bbox:pBbox(pts)});
+    });
+  });
+  patterns.push({id:'pat_demo_'+Date.now(),name:'Demo Shoe Pattern',savedAt:new Date().toISOString(),lastUsedAt:Date.now(),sizes,parts,pieces});
+  _tryLS(DB_KEY,JSON.stringify(patterns));loadDB();showToast('Demo pattern loaded','orange');
+}
+function pArea(pts){let a=0;for(let i=0,j=pts.length-1;i<pts.length;j=i++)a+=(pts[j][0]+pts[i][0])*(pts[j][1]-pts[i][1]);return Math.abs(a/2);}
+function pBbox(pts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const[x,y]of pts){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);}return{x:x0,y:y0,w:x1-x0,h:y1-y0};}
+
+// ══════════════════════════════════════════════════════════
+//  STEP 1 — QUANTITY MODAL
+// ══════════════════════════════════════════════════════════
+
+function selectPattern(id){
+  selected=patterns.find(p=>p.id===id)||null;
+  if(!selected)return;
+  const totalCh=selected.pieces.reduce((s,p)=>s+(p.children?p.children.length:0),0);
+  const totalEng=selected.pieces.reduce((s,p)=>s+(p.children?p.children.filter(c=>c.kind==='engrave').length:0),0);
+  console.log('selectPattern: '+selected.pieces.length+' pieces, '+totalCh+' total children, '+totalEng+' engrave');
+  selected.lastUsedAt=Date.now();
+  _tryLS(DB_KEY,JSON.stringify(patterns));
+  quantities={};materials={};
+  selected.sizes.forEach(sz=>{quantities[sz.id]=0;});
+  const cached=_loadMatCache()[selected.id]||{};
+  getActiveParts().forEach(pt=>{materials[pt.id]=cached[pt.id]||'';});
+  openQtyModal();
+}
+
+function getActiveParts(){
+  if(!selected)return[];
+  const usedIds=new Set(selected.pieces.map(p=>p.partId).filter(Boolean));
+  const parts=selected.parts.filter(p=>usedIds.has(p.id));
+  usedIds.forEach(pid=>{
+    if(!parts.find(p=>p.id===pid)){
+      const pc=selected.pieces.find(p=>p.partId===pid);
+      parts.push({id:pid,name:pc?pc.layer||'Part_'+pid:'Part_'+pid,color:'#7a8fa8'});
+    }
+  });
+  return parts;
+}
+
+function openQtyModal(){
+  document.getElementById('mqty-name').textContent=selected.name;
+  renderQtyModal();
+  document.getElementById('modal-qty').classList.add('open');
+}
+
+function closeQtyModal(){
+  document.getElementById('modal-qty').classList.remove('open');
+  selected=null;quantities={};
+}
+
+function renderQtyModal(){
+  const body=document.getElementById('mqty-body');
+  const sorted=[...selected.sizes].sort((a,b)=>(parseFloat(a.label)||0)-(parseFloat(b.label)||0));
+
+  let html='<div class="mfill">';
+  html+='<span class="mfill-lbl">Fill all:</span>';
+  html+='<input class="mfill-inp" type="number" min="0" id="mfill-v" inputmode="numeric" placeholder="0" aria-label="Fill all sizes">';
+  html+='<button class="mqbtn mqbtn-apply" onclick="mFillAll()">Apply</button>';
+  html+='<button class="mqbtn" onclick="mClearAll()">Clear</button>';
+  html+='<span style="width:1px;height:16px;background:var(--wire2)"></span>';
+  [1,5,10,25,50].forEach(n=>{html+='<button class="mqbtn" onclick="mFillAll('+n+')">'+n+'</button>';});
+  html+='</div>';
+
+  html+='<table class="mtable"><thead><tr><th>Size</th><th>Parts</th><th style="text-align:center">Pairs</th><th style="text-align:right">Pieces</th></tr></thead><tbody>';
+  const qActiveParts=getActiveParts();
+  sorted.forEach(sz=>{
+    const pcs=selected.pieces.filter(p=>p.sizeId===sz.id);
+    const parts=[...new Set(pcs.map(p=>{const pt=qActiveParts.find(x=>x.id===p.partId)||selected.parts.find(x=>x.id===p.partId);return pt?pt.name:'?';}))];
+    const qty=quantities[sz.id]||0;const total=pcs.length*qty;
+    html+='<tr><td><span class="mq-sz">'+esc(sz.label)+'</span></td>';
+    html+='<td><span class="mq-ct">'+pcs.length+'</span> <span style="font-size:8px;color:var(--ghost)">'+esc(parts.join(', '))+'</span></td>';
+    html+='<td style="text-align:center"><input class="mq-inp'+(qty>0?' has':'')+'" type="number" min="0" inputmode="numeric" value="'+(qty||'')+'" placeholder="0" data-sz="'+sz.id+'" aria-label="Pairs for size '+esc(sz.label)+'"></td>';
+    html+='<td class="mq-total">'+(total>0?'<b>'+fmt(total)+'</b>':'--')+'</td></tr>';
+  });
+  html+='</tbody></table>';
+
+  const totalPcs=calcTotalPcs();
+  html+='<div class="mq-summary"><span class="mq-summary-lbl">Total pieces</span><span class="mq-summary-val" id="mqty-total">'+fmt(totalPcs)+'</span></div>';
+  body.innerHTML=html;
+
+  body.querySelectorAll('.mq-inp').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      const v=parseInt(this.value)||0;quantities[this.dataset.sz]=v;
+      this.classList.toggle('has',v>0);
+      const pcs=selected.pieces.filter(p=>p.sizeId===this.dataset.sz).length;
+      this.closest('tr').querySelector('.mq-total').innerHTML=v>0?'<b>'+fmt(pcs*v)+'</b>':'--';
+      document.getElementById('mqty-total').textContent=fmt(calcTotalPcs());
+      document.getElementById('mqty-ok').disabled=calcTotalPcs()===0;
+    });
+  });
+  document.getElementById('mqty-ok').disabled=totalPcs===0;
+}
+
+function mFillAll(val){
+  if(val===undefined)val=parseInt(document.getElementById('mfill-v').value)||0;
+  else document.getElementById('mfill-v').value=val;
+  selected.sizes.forEach(sz=>{quantities[sz.id]=val;});
+  renderQtyModal();
+}
+function mClearAll(){
+  document.getElementById('mfill-v').value='';
+  selected.sizes.forEach(sz=>{quantities[sz.id]=0;});
+  renderQtyModal();
+}
+function calcTotalPcs(){
+  let t=0;selected.sizes.forEach(sz=>{const q=quantities[sz.id]||0;t+=selected.pieces.filter(p=>p.sizeId===sz.id).length*q;});return t;
+}
+
+// ══════════════════════════════════════════════════════════
+//  STEP 2 — MATERIAL ASSIGNMENT MODAL
+// ══════════════════════════════════════════════════════════
+
+function openMatModal(){
+  document.getElementById('modal-qty').classList.remove('open');
+  document.getElementById('mmat-name').textContent=selected.name;
+  renderMatModal();
+  document.getElementById('modal-mat').classList.add('open');
+}
+
+function backToQty(){
+  document.getElementById('modal-mat').classList.remove('open');
+  openQtyModal();
+}
+
+function renderMatModal(){
+  const body=document.getElementById('mmat-body');
+  let html='<div style="font-size:12px;color:var(--mist);margin-bottom:12px">Assign a material to each part. Parts with the same material will be grouped into one DXF file.</div>';
+
+  html+='<div class="mat-presets">';
+  MATERIAL_PRESETS.forEach(m=>{html+='<span class="mat-preset" onclick="applyPreset(\''+esc(m)+'\')">'+esc(m)+'</span>';});
+  html+='</div>';
+
+  const activeParts=getActiveParts();
+  html+='<div id="mat-rows">';
+  activeParts.forEach(pt=>{
+    const val=materials[pt.id]||'';
+    const pcCount=selected.pieces.filter(p=>p.partId===pt.id).length;
+    html+='<div class="mat-row">';
+    html+='<div class="mat-sw" style="background:'+pt.color+'"></div>';
+    html+='<div class="mat-name">'+esc(pt.name)+' <span style="font-family:\'JetBrains Mono\',monospace;font-size:8px;color:var(--ghost);font-weight:400">('+pcCount+' pcs)</span></div>';
+    html+='<div class="mat-arrow">&#8594;</div>';
+    html+='<input class="mat-inp" type="text" placeholder="e.g. Leather, Mesh..." value="'+esc(val)+'" data-pt="'+pt.id+'" list="mat-suggestions" autocomplete="off">';
+    html+='</div>';
+  });
+  html+='</div>';
+
+  html+='<datalist id="mat-suggestions">';
+  MATERIAL_PRESETS.forEach(m=>{html+='<option value="'+esc(m)+'">';});
+  html+='</datalist>';
+
+  html+='<div class="mat-group-preview" id="mat-preview"></div>';
+  body.innerHTML=html;
+
+  body.querySelectorAll('.mat-inp').forEach(inp=>{
+    inp.addEventListener('input',function(){
+      materials[this.dataset.pt]=this.value.trim();
+      if(selected)_saveMatCache(selected.id,materials);
+      updateMatPreview();
+    });
+  });
+  updateMatPreview();
+}
+
+function applyPreset(mat){
+  const activeParts=getActiveParts();
+  const empty=activeParts.find(pt=>!materials[pt.id]);
+  if(empty){
+    materials[empty.id]=mat;
+    const inp=document.querySelector('.mat-inp[data-pt="'+empty.id+'"]');
+    if(inp)inp.value=mat;
+    if(selected)_saveMatCache(selected.id,materials);
+    updateMatPreview();
+  }
+}
+
+function updateMatPreview(){
+  const activeParts=getActiveParts();
+  const groups={};
+  let allFilled=true;
+  activeParts.forEach(pt=>{
+    const mat=materials[pt.id];
+    if(!mat){allFilled=false;return;}
+    if(!groups[mat])groups[mat]=[];
+    groups[mat].push(pt);
+  });
+  document.getElementById('mmat-export').disabled=!allFilled;
+  document.getElementById('mmat-combined').disabled=!allFilled;
+  document.getElementById('mmat-nest').disabled=!allFilled;
+
+  const prev=document.getElementById('mat-preview');
+  if(!Object.keys(groups).length){
+    prev.innerHTML='<div class="mg-title">Export Preview</div><div style="font-size:10px;color:var(--ghost)">Assign materials above to see grouping</div>';
+    return;
+  }
+  let html='<div class="mg-title">Export Preview — '+Object.keys(groups).length+' DXF file'+(Object.keys(groups).length!==1?'s':'')+'</div>';
+  const patSlug=selected.name.replace(/[^a-zA-Z0-9]/g,'_');
+  Object.entries(groups).forEach(([mat,parts])=>{
+    const matSlug=mat.replace(/[^a-zA-Z0-9]/g,'_');
+    html+='<div class="mg-row">';
+    html+='<div class="mg-mat">'+esc(mat)+'</div>';
+    html+='<div class="mg-parts">'+parts.map(p=>p.name).join(', ')+'</div>';
+    html+='<div class="mg-file">'+patSlug+'_'+matSlug+'.dxf</div>';
+    html+='</div>';
+  });
+  prev.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════
+//  EXPORT — one DXF per material group
+// ══════════════════════════════════════════════════════════
+
+function buildDxfForMaterial(mat,partIds,activeParts,patSlug,side){
+  const pwm=selected.pwm||{cut:100,hole:80,mark:25,engrave:15};
+  const cutLayer=mat;
+  const mirror=side==='L';
+
+  let dxf='0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1021\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n';
+  dxf+='0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n4\n';
+  dxf+='0\nLAYER\n2\n'+cutLayer+'\n70\n0\n62\n3\n6\nContinuous\n999\nPWM:'+pwm.cut+'\n';
+  dxf+='0\nLAYER\n2\nHOLE\n70\n0\n62\n1\n6\nContinuous\n999\nPWM:'+pwm.hole+'\n';
+  dxf+='0\nLAYER\n2\nMARK\n70\n0\n62\n5\n6\nContinuous\n999\nPWM:'+pwm.mark+'\n';
+  dxf+='0\nLAYER\n2\nENGRAVE\n70\n0\n62\n6\n6\nContinuous\n999\nPWM:'+pwm.engrave+'\n';
+  dxf+='0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n';
+  let pcCount=0;
+
+  selected.sizes.forEach(sz=>{
+    const qty=quantities[sz.id]||0;
+    if(qty<=0)return;
+    const pcs=selected.pieces.filter(p=>p.sizeId===sz.id&&partIds.includes(p.partId));
+    pcs.forEach(p=>{
+      const cx=mirror?(p.bbox.x+p.bbox.w/2):0;
+      for(let copy=0;copy<qty;copy++){
+        if(pwm.cut>0){
+          const pts=mirror?[...p.pts].reverse():p.pts;
+          dxf+='0\nLWPOLYLINE\n8\n'+cutLayer+'\n90\n'+pts.length+'\n70\n1\n';
+          for(const[x,y]of pts){
+            const wx=mirror?(2*cx-x):x;
+            dxf+='10\n'+wx.toFixed(6)+'\n20\n'+(y+copy*0.01).toFixed(6)+'\n';
+          }
+        }
+        if(p.children){
+          for(const ch of p.children){
+            const ck=ch.kind||'hole';
+            if(ck==='mark'&&pwm.mark===0)continue;
+            if(ck==='hole'&&pwm.hole===0)continue;
+            if(ck==='engrave'&&pwm.engrave===0)continue;
+            const lyr=ck==='mark'?'MARK':ck==='engrave'?'ENGRAVE':'HOLE';
+            const cpts=mirror?[...ch.pts].reverse():ch.pts;
+            dxf+='0\nLWPOLYLINE\n8\n'+lyr+'\n90\n'+cpts.length+'\n70\n1\n';
+            for(const[x,y]of cpts){
+              const wx=mirror?(2*cx-x):x;
+              dxf+='10\n'+wx.toFixed(6)+'\n20\n'+(y+copy*0.01).toFixed(6)+'\n';
+            }
+          }
+        }
+        pcCount++;
+      }
+    });
+  });
+
+  dxf+='0\nENDSEC\n0\nEOF\n';
+  return{dxf,pcCount};
+}
+
+function downloadDxf(dxf,filename){
+  const blob=new Blob([dxf],{type:'application/dxf'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCombined(){
+  const activeParts=getActiveParts();
+  const mirrorPair=document.getElementById('chk-mirror').checked;
+  const patSlug=selected.name.replace(/[^a-zA-Z0-9]/g,'_');
+  const pwm=selected.pwm||{cut:100,hole:80,mark:25,engrave:15};
+  let totalFiles=0,totalPcs=0;
+
+  // Build part→material map
+  const partMat={};
+  activeParts.forEach(pt=>{partMat[pt.id]=materials[pt.id]||'UNLABELED';});
+  const matNames=[...new Set(Object.values(partMat))];
+
+  const sides=mirrorPair?['L','R']:[null];
+  sides.forEach(side=>{
+    const mirror=side==='L';
+
+    // Collect pieces sorted by material, then size, then area descending
+    const sortedSizes=[...selected.sizes].sort((a,b)=>(parseFloat(a.label)||0)-(parseFloat(b.label)||0));
+    const sorted=[];
+    matNames.forEach(mat=>{
+      const matPartIds=activeParts.filter(pt=>partMat[pt.id]===mat).map(pt=>pt.id);
+      sortedSizes.forEach(sz=>{
+        const qty=quantities[sz.id]||0;
+        if(qty<=0)return;
+        const pcs=selected.pieces.filter(p=>p.sizeId===sz.id&&matPartIds.includes(p.partId));
+        pcs.sort((a,b)=>b.area-a.area);
+        pcs.forEach(p=>sorted.push({piece:p,sz,qty,mat}));
+      });
+    });
+
+    // Layers = material names only
+    let dxf='0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1021\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n';
+    dxf+='0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLAYER\n70\n4\n';
+    matNames.forEach(mat=>{
+      dxf+='0\nLAYER\n2\n'+mat+'\n70\n0\n62\n3\n6\nContinuous\n999\nPWM:'+pwm.cut+'\n';
+    });
+    dxf+='0\nLAYER\n2\nHOLE\n70\n0\n62\n1\n6\nContinuous\n999\nPWM:'+pwm.hole+'\n';
+    dxf+='0\nLAYER\n2\nMARK\n70\n0\n62\n5\n6\nContinuous\n999\nPWM:'+pwm.mark+'\n';
+    dxf+='0\nLAYER\n2\nENGRAVE\n70\n0\n62\n6\n6\nContinuous\n999\nPWM:'+pwm.engrave+'\n';
+    dxf+='0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n';
+    let pcCount=0;
+
+    sorted.forEach(({piece:p,sz,qty,mat})=>{
+      const cx=mirror?(p.bbox.x+p.bbox.w/2):0;
+      for(let copy=0;copy<qty;copy++){
+        if(pwm.cut>0){
+          const pts=mirror?[...p.pts].reverse():p.pts;
+          dxf+='0\nLWPOLYLINE\n8\n'+mat+'\n90\n'+pts.length+'\n70\n1\n';
+          for(const[x,y]of pts){
+            const wx=mirror?(2*cx-x):x;
+            dxf+='10\n'+wx.toFixed(6)+'\n20\n'+(y+copy*0.01).toFixed(6)+'\n';
+          }
+        }
+        if(p.children){
+          for(const ch of p.children){
+            const ck=ch.kind||'hole';
+            if(ck==='mark'&&pwm.mark===0)continue;
+            if(ck==='hole'&&pwm.hole===0)continue;
+            if(ck==='engrave'&&pwm.engrave===0)continue;
+            const lyr=ck==='mark'?'MARK':ck==='engrave'?'ENGRAVE':'HOLE';
+            const cpts=mirror?[...ch.pts].reverse():ch.pts;
+            dxf+='0\nLWPOLYLINE\n8\n'+lyr+'\n90\n'+cpts.length+'\n70\n1\n';
+            for(const[x,y]of cpts){
+              const wx=mirror?(2*cx-x):x;
+              dxf+='10\n'+wx.toFixed(6)+'\n20\n'+(y+copy*0.01).toFixed(6)+'\n';
+            }
+          }
+        }
+        pcCount++;
+      }
+    });
+
+    dxf+='0\nENDSEC\n0\nEOF\n';
+    if(pcCount>0){
+      const sfx=side?'_'+side:'';
+      downloadDxf(dxf,patSlug+'_ALL'+sfx+'.dxf');
+      totalFiles++;totalPcs+=pcCount;
+    }
+  });
+
+  document.getElementById('modal-mat').classList.remove('open');
+  selected=null;quantities={};
+  showToast('Exported '+totalFiles+' combined DXF'+(totalFiles!==1?'s':'')+' ('+fmt(totalPcs)+' pieces, '+matNames.length+' materials)','lime');
+}
+
+function exportByMaterial(){
+  console.log('=== EXPORT START ===');
+  const groups={};
+  getActiveParts().forEach(pt=>{
+    const mat=materials[pt.id];
+    if(!mat)return;
+    if(!groups[mat])groups[mat]=[];
+    groups[mat].push(pt.id);
+  });
+
+  const matNames=Object.keys(groups);
+  if(!matNames.length){showToast('Assign materials to all parts','rose');return;}
+
+  const mirrorPair=document.getElementById('chk-mirror').checked;
+  let totalFiles=0;let totalPcs=0;
+  const patSlug=selected.name.replace(/[^a-zA-Z0-9]/g,'_');
+  const activeParts=getActiveParts();
+
+  matNames.forEach(mat=>{
+    const partIds=groups[mat];
+    const matSlug=mat.replace(/[^a-zA-Z0-9]/g,'_');
+
+    if(mirrorPair){
+      const left=buildDxfForMaterial(mat,partIds,activeParts,patSlug,'L');
+      if(left.pcCount>0){downloadDxf(left.dxf,patSlug+'_'+matSlug+'_L.dxf');totalFiles++;totalPcs+=left.pcCount;}
+      const right=buildDxfForMaterial(mat,partIds,activeParts,patSlug,'R');
+      if(right.pcCount>0){downloadDxf(right.dxf,patSlug+'_'+matSlug+'_R.dxf');totalFiles++;totalPcs+=right.pcCount;}
+    }else{
+      const res=buildDxfForMaterial(mat,partIds,activeParts,patSlug,null);
+      if(res.pcCount>0){downloadDxf(res.dxf,patSlug+'_'+matSlug+'.dxf');totalFiles++;totalPcs+=res.pcCount;}
+    }
+  });
+
+  document.getElementById('modal-mat').classList.remove('open');
+  selected=null;quantities={};
+  showToast('Exported '+totalFiles+' DXF file'+(totalFiles!==1?'s':'')+' ('+fmt(totalPcs)+' pieces)'+(mirrorPair?' as L/R pairs':''),'lime');
+}
+
+// ══════════════════════════════════════════════════════════
+//  PUSH TO NESTING — sends pieces to NestQ via IndexedDB
+// ══════════════════════════════════════════════════════════
+const PUSH_DB_NAME='PatternIQ_NestPush';
+const PUSH_DB_VER=1;
+
+function openPushDB(){
+  return new Promise(resolve=>{
+    const req=indexedDB.open(PUSH_DB_NAME,PUSH_DB_VER);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains('push'))db.createObjectStore('push',{keyPath:'id'});
+    };
+    req.onsuccess=e=>resolve(e.target.result);
+    req.onerror=()=>resolve(null);
+  });
+}
+
+async function pushToNesting(){
+  if(!selected)return;
+  const activeParts=getActiveParts();
+  const mirrorPair=document.getElementById('chk-mirror').checked;
+  const sides=mirrorPair?['L','R']:[null];
+  const pushParts=[];
+
+  sides.forEach(side=>{
+    const mirror=side==='L';
+    const sfx=side?'_'+side:'';
+    activeParts.forEach(pt=>{
+      const mat=materials[pt.id]||'Unassigned';
+      const pcs=selected.pieces.filter(p=>p.partId===pt.id);
+      pcs.forEach(p=>{
+        const qty=quantities[p.sizeId]||0;
+        if(qty<=0)return;
+        const sz=selected.sizes.find(s=>s.id===p.sizeId);
+        const szLabel=sz?sz.label:'?';
+        const cx=mirror?(p.bbox.x+p.bbox.w/2):0;
+        const boundary=p.pts.map(([x,y])=>{
+          const wx=mirror?(2*cx-x):x;
+          return[wx,y];
+        });
+        if(mirror)boundary.reverse();
+        const bb=_bbox(boundary);
+        const bh=bb.y1-bb.y0;
+        const norm=boundary.map(([x,y])=>[x-bb.x0,bh-(y-bb.y0)]);
+        const children=[];
+        if(p.children){
+          for(const ch of p.children){
+            const cpoly=ch.pts.map(([x,y])=>{
+              const wx=mirror?(2*cx-x):x;
+              return[wx,y];
+            });
+            if(mirror)cpoly.reverse();
+            children.push({poly:cpoly.map(([x,y])=>[x-bb.x0,bh-(y-bb.y0)]),kind:ch.kind||'hole'});
+          }
+        }
+        const name=selected.name+'_'+pt.name+sfx+'_sz'+szLabel;
+        pushParts.push({
+          name:name,
+          boundary:norm,
+          children:children,
+          material:mat,
+          qty:qty,
+          bb:{x0:0,y0:0,x1:bb.x1-bb.x0,y1:bb.y1-bb.y0,w:bb.x1-bb.x0,h:bb.y1-bb.y0},
+          sizeLbl:szLabel,
+          partName:pt.name,
+          side:side,
+          color:pt.color
+        });
+      });
+    });
+  });
+
+  if(!pushParts.length){showToast('No pieces to push','rose');return;}
+
+  const payload={
+    id:'push',
+    ts:Date.now(),
+    patternName:selected.name,
+    mirrorPair:mirrorPair,
+    pwm:selected.pwm||{cut:100,hole:80,mark:25,engrave:15},
+    parts:pushParts
+  };
+
+  const db=await openPushDB();
+  if(!db){showToast('Storage unavailable','rose');return;}
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction('push','readwrite');
+    tx.objectStore('push').put(payload);
+    tx.oncomplete=resolve;tx.onerror=reject;
+  });
+
+  document.getElementById('modal-mat').classList.remove('open');
+  selected=null;quantities={};
+
+  const totalPcs=pushParts.reduce((s,p)=>s+p.qty,0);
+  showToast('Pushed '+pushParts.length+' part type'+(pushParts.length!==1?'s':'')+' ('+fmt(totalPcs)+' pcs) to Nesting','teal');
+
+  var inIframe = false;
+  try { inIframe = window.self !== window.top; } catch(e) { inIframe = true; }
+  if (inIframe) {
+    window.parent.postMessage({ type: 'navigate', view: 'nesting' }, '*');
+  } else {
+    window.location.href = 'index.html#nesting';
+  }
+}
+
+function _bbox(pts){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const[x,y]of pts){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}return{x0,y0,x1,y1};}
+
+// ── DB JSON Import ───────────────────────────────────────
+document.getElementById('db-fi').addEventListener('change',function(e){
+  if(!e.target.files.length)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      let incoming=[];let incomingImgs={};
+      if(Array.isArray(data)){
+        incoming=data;
+      }else if(data.patterns&&Array.isArray(data.patterns)){
+        incoming=data.patterns;
+        if(data.images)incomingImgs=data.images;
+      }else{showToast('Invalid file format','rose');return;}
+      let existingPats=[];try{existingPats=JSON.parse(localStorage.getItem(DB_KEY))||[];}catch{}
+      const existingImgs=images||{};
+      let added=0,skipped=0;
+      incoming.forEach(pat=>{
+        if(!pat.id||!pat.sizes||!pat.parts||!pat.pieces){skipped++;return;}
+        if(existingPats.find(p=>p.id===pat.id)){skipped++;return;}
+        existingPats.push(pat);
+        if(incomingImgs[pat.id])existingImgs[pat.id]=incomingImgs[pat.id];
+        added++;
+      });
+      let arcAdded=0;
+      if(data.archive&&Array.isArray(data.archive)){
+        const arc=getArchive();
+        const arcImgs=getArchiveImgs();
+        data.archive.forEach(pat=>{
+          if(!pat.id||arc.find(p=>p.id===pat.id)||existingPats.find(p=>p.id===pat.id))return;
+          arc.push(pat);
+          if(data.archiveImages&&data.archiveImages[pat.id])arcImgs[pat.id]=data.archiveImages[pat.id];
+          arcAdded++;
+        });
+        _tryLS(ARCHIVE_KEY,JSON.stringify(arc));
+        _tryLS(ARCHIVE_IMG_KEY,JSON.stringify(arcImgs));
+      }
+      _tryLS(DB_KEY,JSON.stringify(existingPats));
+      _tryLS(IMG_KEY,JSON.stringify(existingImgs));
+      loadDB();
+      const msg='Imported '+added+' pattern'+(added!==1?'s':'')+(arcAdded?' + '+arcAdded+' archived':'')+(skipped?' ('+skipped+' skipped)':'');
+      showToast(msg,'lime');
+    }catch(err){showToast('Failed to parse JSON: '+err.message,'rose');}
+  };
+  reader.readAsText(e.target.files[0]);
+  e.target.value='';
+});
+
+// ── Auto-refresh when PatternINQ publishes in another tab ──
+window.addEventListener('storage',function(e){
+  if(e.key===DB_KEY||e.key===ARCHIVE_KEY||e.key===IMG_KEY){
+    loadDB();
+    showToast('Nesting DB updated','teal');
+  }
+});
+
+// ── Sibling link ────────────────────────────────────────
+(function(){
+  const link=document.getElementById('link-iq');
+  const x=new XMLHttpRequest();
+  x.open('HEAD','patternINQ.html',true);
+  x.onload=function(){if(x.status>=200&&x.status<400)link.style.display='';};
+  x.onerror=function(){};x.send();
+})();
+
+initDB();
+</script>
+</body>
+</html>

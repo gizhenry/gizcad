@@ -1,0 +1,11 @@
+{
+  "name": "patternq",
+  "version": "1.0.0",
+  "description": "PatternQ - Pattern Digitizer & Nesting",
+  "scripts": {
+    "start": "serve prototype-ui -l 8080"
+  },
+  "dependencies": {
+    "serve": "^14.2.6"
+  }
+}
