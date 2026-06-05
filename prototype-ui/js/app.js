@@ -294,16 +294,54 @@ function initGlobalEvents() {
   PageRouter.init();
 
   // Listen for navigation messages from iframes (e.g. Library "Push to Nesting")
-  window.addEventListener('message', (e) => {
+  window.addEventListener('message', async (e) => {
     if (e.data && e.data.type === 'navigate' && PageRouter._pages.includes(e.data.view)) {
-      PageRouter.navigateTo(e.data.view);
       if (e.data.view === 'nesting') {
-        const nestFrame = document.getElementById('iframe-nesting');
-        if (nestFrame && nestFrame.contentWindow) {
-          nestFrame.contentWindow.postMessage({ type: 'check-pushed-parts' }, '*');
-          setTimeout(() => nestFrame.contentWindow.postMessage({ type: 'check-pushed-parts' }, '*'), 300);
-        }
+        // Read the push payload from IndexedDB HERE (parent context) before
+        // navigating, then relay it directly to PatterNestQ so its startup
+        // _checkPushedJob() cannot race-delete the record first.
+        (async () => {
+          let pushedJob = null;
+          try {
+            pushedJob = await new Promise((resolve) => {
+              const req = indexedDB.open('PatternIQ_NestPush', 1);
+              req.onsuccess = (ev) => {
+                const db = ev.target.result;
+                if (!db.objectStoreNames.contains('push')) { resolve(null); return; }
+                const tx = db.transaction('push', 'readonly');
+                const r  = tx.objectStore('push').get('push');
+                r.onsuccess = () => resolve(r.result || null);
+                r.onerror   = () => resolve(null);
+              };
+              req.onerror = () => resolve(null);
+            });
+          } catch (_) { pushedJob = null; }
+
+          PageRouter.navigateTo('nesting');
+
+          const nestFrame = document.getElementById('iframe-nesting');
+          if (!nestFrame || !nestFrame.contentWindow) return;
+
+          if (pushedJob && pushedJob.parts && pushedJob.parts.length) {
+            // Relay full payload — PatterNestQ re-writes + calls _loadPushedJob
+            const sendDirect = () =>
+              nestFrame.contentWindow.postMessage({ type: 'push-parts-direct', job: pushedJob }, '*');
+            sendDirect();
+            setTimeout(sendDirect, 300);
+            setTimeout(sendDirect, 800);
+          } else {
+            // Fallback: nothing in DB yet, use normal check path
+            const ping = () =>
+              nestFrame.contentWindow.postMessage({ type: 'check-pushed-parts' }, '*');
+            ping();
+            setTimeout(ping, 300);
+            setTimeout(ping, 800);
+            setTimeout(ping, 1800);
+          }
+        })();
+        return;
       }
+      PageRouter.navigateTo(e.data.view);
       if (e.data.view === 'patterninq') {
         const inqFrame = document.getElementById('iframe-patterninq');
         if (inqFrame && inqFrame.contentWindow) {

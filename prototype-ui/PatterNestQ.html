@@ -3037,6 +3037,24 @@ window.addEventListener('resize',zoomFit);
 window.addEventListener('message', function(e) {
   if (!e.data || !e.data.type) return;
 
+  // Direct payload relay from parent (app.js reads IndexedDB, avoids startup race)
+  if (e.data.type === 'push-parts-direct') {
+    const job = e.data.job;
+    if (job && job.parts && job.parts.length) {
+      // Re-write record so _loadPushedJob finds it, then call it normally
+      _openPushDB().then(db => {
+        if (!db) return;
+        const tx = db.transaction('push', 'readwrite');
+        tx.objectStore('push').put(job);
+        tx.oncomplete = () => {
+          _pushLoaded = false;
+          _loadPushedJob();
+        };
+      });
+    }
+    return;
+  }
+
   // Parent tells us to check IndexedDB for pushed parts (from Library/OutQ)
   if (e.data.type === 'check-pushed-parts') {
     console.log('[PatterNestQ] Received check-pushed-parts message');
