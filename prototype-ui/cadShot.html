@@ -1038,6 +1038,7 @@ function loadImageFile(file) {
             document.getElementById('canvasInfo').textContent = `${View.imgW} x ${View.imgH}`;
             log(`Image loaded: ${View.imgW}x${View.imgH}`);
             updatePieceCount(); updateScaleStatus(); renderPieceList();
+            autoDetectPaperCalibration();
             if (state.modelReady) computeEmbeddings().then(() => autoDetectAll());
             else log('Load the SAM model to begin piece detection');
         };
@@ -1188,6 +1189,16 @@ function computeMaskFgBgDistance(mask, rgbaData, bgColor, w, h) {
     }
     return count > 0 ? totalDist / count : 0;
 }
+function computeMaskMeanBrightness(mask, rgbaData, w, h) {
+    let totalBr = 0, count = 0;
+    for (let i = 0; i < mask.length; i++) {
+        if (!mask[i]) continue;
+        const pi = i * 4;
+        totalBr += 0.299 * rgbaData[pi] + 0.587 * rgbaData[pi+1] + 0.114 * rgbaData[pi+2];
+        count++;
+    }
+    return count > 0 ? totalBr / count : 0;
+}
 function checkRectangularity(mask, w, h) {
     let x1 = w, y1 = h, x2 = 0, y2 = 0, area = 0;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -1195,6 +1206,140 @@ function checkRectangularity(mask, w, h) {
     }
     const bbW = x2-x1+1, bbH = y2-y1+1;
     return { rectangularity: area/(bbW*bbH), aspectRatio: Math.max(bbW,bbH)/Math.min(bbW,bbH), bbW, bbH, area };
+}
+// SAM-independent paper detector: background edge sampling + connected components + color uniformity.
+// Runs on image load to calibrate before SAM is even ready.
+function autoDetectPaperCalibration() {
+    if (!View.imgW || !View.imgH) return false;
+    const knownW = parseFloat(document.getElementById('calWidth').value) || 297;
+    const knownH = parseFloat(document.getElementById('calHeight').value) || 210;
+    const targetAR = Math.max(knownW, knownH) / Math.min(knownW, knownH);
+    const maxDim = 800;
+    const scale = Math.min(1, maxDim / Math.max(View.imgW, View.imgH));
+    const sw = Math.round(View.imgW * scale), sh = Math.round(View.imgH * scale);
+    const wc = document.createElement('canvas'); wc.width = sw; wc.height = sh;
+    const wctx = wc.getContext('2d', { willReadFrequently: true });
+    wctx.drawImage(sourceBuf, 0, 0, View.imgW, View.imgH, 0, 0, sw, sh);
+    const imgData = wctx.getImageData(0, 0, sw, sh);
+    const px = imgData.data;
+    // Sample background from 20px border
+    const border = 20;
+    let bgR = 0, bgG = 0, bgB = 0, bgCount = 0;
+    for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+        if (x < border || x >= sw - border || y < border || y >= sh - border) {
+            const i = (y * sw + x) * 4;
+            bgR += px[i]; bgG += px[i+1]; bgB += px[i+2]; bgCount++;
+        }
+    }
+    bgR /= bgCount; bgG /= bgCount; bgB /= bgCount;
+    // Color distance from background per pixel
+    const dist = new Float32Array(sw * sh);
+    for (let i = 0; i < sw * sh; i++) {
+        const dr = px[i*4] - bgR, dg = px[i*4+1] - bgG, db = px[i*4+2] - bgB;
+        dist[i] = Math.sqrt(dr*dr + dg*dg + db*db);
+    }
+    // Multi-threshold pass: find rectangular, uniform-color region matching paper AR
+    for (const minDist of [50, 35, 25]) {
+        const bin = new Uint8Array(sw * sh);
+        for (let i = 0; i < sw * sh; i++) bin[i] = dist[i] >= minDist ? 1 : 0;
+        morphClose(bin, sw, sh, 3);
+        const labels = new Int32Array(sw * sh), sizes = [0], stack = [];
+        let nextLabel = 1;
+        for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+            const idx = y * sw + x;
+            if (!bin[idx] || labels[idx]) continue;
+            const lbl = nextLabel++; let sz = 0;
+            stack.length = 0; stack.push(idx); labels[idx] = lbl;
+            while (stack.length) {
+                const p = stack.pop(); sz++;
+                const py2 = (p / sw) | 0, px2 = p - py2 * sw;
+                if (px2 > 0 && bin[p-1] && !labels[p-1]) { labels[p-1] = lbl; stack.push(p-1); }
+                if (px2 < sw-1 && bin[p+1] && !labels[p+1]) { labels[p+1] = lbl; stack.push(p+1); }
+                if (py2 > 0 && bin[p-sw] && !labels[p-sw]) { labels[p-sw] = lbl; stack.push(p-sw); }
+                if (py2 < sh-1 && bin[p+sw] && !labels[p+sw]) { labels[p+sw] = lbl; stack.push(p+sw); }
+            }
+            sizes.push(sz);
+        }
+        const imgArea = sw * sh;
+        let bestLbl = -1, bestScore = -1;
+        for (let i = 1; i < sizes.length; i++) {
+            const pct = (sizes[i] / imgArea) * 100;
+            if (pct < 0.5 || pct > 30) continue;
+            let bx1 = sw, by1 = sh, bx2 = 0, by2 = 0;
+            for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+                if (labels[y*sw+x] === i) { if(x<bx1)bx1=x; if(x>bx2)bx2=x; if(y<by1)by1=y; if(y>by2)by2=y; }
+            }
+            const bW = bx2-bx1+1, bH = by2-by1+1;
+            const fillRatio = sizes[i] / (bW * bH);
+            if (fillRatio < 0.7) continue;
+            const ar = Math.max(bW, bH) / Math.min(bW, bH);
+            if (Math.abs(ar - targetAR) > 0.3) continue;
+            // Color uniformity check — paper is one solid color, not a patterned piece
+            let cR = 0, cG = 0, cB = 0, cnt = 0;
+            for (let y = by1; y <= by2; y++) for (let x = bx1; x <= bx2; x++) {
+                if (labels[y*sw+x] === i) { const j = (y*sw+x)*4; cR += px[j]; cG += px[j+1]; cB += px[j+2]; cnt++; }
+            }
+            if (cnt < 10) continue;
+            cR /= cnt; cG /= cnt; cB /= cnt;
+            let variance = 0;
+            for (let y = by1; y <= by2; y++) for (let x = bx1; x <= bx2; x++) {
+                if (labels[y*sw+x] === i) { const j = (y*sw+x)*4; variance += Math.abs(px[j]-cR) + Math.abs(px[j+1]-cG) + Math.abs(px[j+2]-cB); }
+            }
+            variance /= cnt;
+            if (variance > 60) continue;
+            const score = fillRatio * (1 - Math.abs(ar - targetAR)) * (1 - variance / 100);
+            if (score > bestScore) { bestScore = score; bestLbl = i; }
+        }
+        if (bestLbl >= 0) {
+            let bx1 = sw, by1 = sh, bx2 = 0, by2 = 0;
+            for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+                if (labels[y*sw+x] === bestLbl) { if(x<bx1)bx1=x; if(x>bx2)bx2=x; if(y<by1)by1=y; if(y>by2)by2=y; }
+            }
+            const paperPxW = (bx2 - bx1 + 1) / scale;
+            const paperPxH = (by2 - by1 + 1) / scale;
+            const longerPx = Math.max(paperPxW, paperPxH);
+            const longerMm = Math.max(knownW, knownH);
+            state.calibration.pixelsPerMm = longerPx / longerMm;
+            updateScaleStatus();
+            document.getElementById('calStatus').textContent = `Auto: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm`;
+            log(`Paper auto-calibrated: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm (${longerMm}mm = ${Math.round(longerPx)}px)`);
+            return true;
+        }
+    }
+    log('No paper detected for auto-calibration', 'warn');
+    return false;
+}
+// Final contour-level paper guard: geometry + brightness sampled directly from sourceCtx.
+// Catches paper that slipped through the SAM mask paper gate.
+function isCalibrationPaper(contour) {
+    if (!contour || contour.length < 4) return false;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of contour) { if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x; if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y; }
+    const bW = x1 - x0, bH = y1 - y0;
+    if (bW < 10 || bH < 10) return false;
+    let polyArea = 0;
+    for (let i = 0; i < contour.length; i++) { const j = (i + 1) % contour.length; polyArea += contour[i].x * contour[j].y - contour[j].x * contour[i].y; }
+    polyArea = Math.abs(polyArea) / 2;
+    const rectangularity = polyArea / (bW * bH);
+    if (rectangularity < 0.82) return false;
+    const ar = Math.max(bW, bH) / Math.min(bW, bH);
+    if (ar < 1.1 || ar > 1.6) return false;
+    // Brightness from the actual source image pixels at the centroid
+    const cx = Math.round(x0 + bW / 2), cy = Math.round(y0 + bH / 2);
+    try {
+        const ss = 10;
+        const pxData = sourceCtx.getImageData(cx - ss, cy - ss, ss * 2, ss * 2).data;
+        let totalBr = 0;
+        for (let i = 0; i < pxData.length; i += 4) totalBr += (pxData[i] + pxData[i+1] + pxData[i+2]) / 3;
+        const avgBr = totalBr / (pxData.length / 4);
+        if (avgBr > 170) return true;
+        // Low-variance solid region is also paper (e.g. slightly shadowed)
+        let variance = 0;
+        for (let i = 0; i < pxData.length; i += 4) { const br = (pxData[i] + pxData[i+1] + pxData[i+2]) / 3; variance += (br - avgBr) ** 2; }
+        variance = Math.sqrt(variance / (pxData.length / 4));
+        if (variance < 20 && rectangularity > 0.85) return true;
+    } catch(e) {}
+    return false;
 }
 // ============================================================
 // CONTOUR EXTRACTION
@@ -1296,34 +1441,34 @@ async function addPieceAtClick(imgX, imgY) {
     const areaPercent = (maskArea / (result.w * result.h)) * 100;
     if (areaPercent < 0.5) { log('Mask too small - click more centrally', 'warn'); setStatus('Click more centrally', 'ready'); return; }
     if (areaPercent > 60) { log('Mask too large (background?) - mark background first', 'warn'); setStatus('Too large - mark background?', 'ready'); return; }
-    // Check if this is calibration paper
+    // Compute image data + mask at SAM_DIM for paper detection and erosion decisions
     const SAM_DIM = 1024;
-    const smallMaskForPaper = upscaleMaskBilinear(result.mask, result.w, result.h, SAM_DIM, SAM_DIM);
-    const rectCheck = checkRectangularity(smallMaskForPaper, SAM_DIM, SAM_DIM);
+    const rc = document.createElement('canvas'); rc.width = SAM_DIM; rc.height = SAM_DIM;
+    const rctx = rc.getContext('2d');
+    rctx.drawImage(sourceBuf, 0, 0, View.imgW, View.imgH, 0, 0, SAM_DIM, SAM_DIM);
+    const imgData = rctx.getImageData(0, 0, SAM_DIM, SAM_DIM);
+    const { bgColor, bgSpread } = sampleBackgroundColor(imgData.data, SAM_DIM, SAM_DIM);
+    const smallMask = upscaleMaskBilinear(result.mask, result.w, result.h, SAM_DIM, SAM_DIM);
+    const fgBgDist = computeMaskFgBgDistance(smallMask, imgData.data, bgColor, SAM_DIM, SAM_DIM);
+    // Check if this is calibration paper: rectangular shape + bright (white paper)
+    const rectCheck = checkRectangularity(smallMask, SAM_DIM, SAM_DIM);
     const knownW = parseFloat(document.getElementById('calWidth').value) || 297;
     const knownH = parseFloat(document.getElementById('calHeight').value) || 210;
     const knownAR = Math.max(knownW, knownH) / Math.min(knownW, knownH);
-    if (rectCheck.rectangularity > 0.85 && Math.abs(rectCheck.aspectRatio - knownAR) < 0.3) {
+    const meanBr = computeMaskMeanBrightness(smallMask, imgData.data, SAM_DIM, SAM_DIM);
+    if (rectCheck.rectangularity > 0.78 && Math.abs(rectCheck.aspectRatio - knownAR) < 0.3 && meanBr > 150) {
         const fullW = rectCheck.bbW * (state.imgW / SAM_DIM);
         const fullH = rectCheck.bbH * (state.imgH / SAM_DIM);
         const longerPx = Math.max(fullW, fullH);
         const longerMm = Math.max(knownW, knownH);
         state.calibration.pixelsPerMm = longerPx / longerMm;
         updateScaleStatus();
-        log(`Paper detected — calibrated: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm`);
+        log(`Paper detected — calibrated: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm (brightness=${Math.round(meanBr)}, rect=${rectCheck.rectangularity.toFixed(2)})`);
         document.getElementById('calStatus').textContent = `Auto: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm`;
         setStatus('Paper calibrated', 'ready');
         return;
     }
-    // Adaptive erosion based on fg-bg color distance
-    const rc = document.createElement('canvas'); rc.width = SAM_DIM; rc.height = SAM_DIM;
-    const rctx = rc.getContext('2d');
-    rctx.drawImage(sourceBuf, 0, 0, View.imgW, View.imgH, 0, 0, SAM_DIM, SAM_DIM);
-    const imgData = rctx.getImageData(0, 0, SAM_DIM, SAM_DIM);
-    const { bgColor, bgSpread } = sampleBackgroundColor(imgData.data, SAM_DIM, SAM_DIM);
-    // Compute distance on downscaled mask
-    const smallMask = upscaleMaskBilinear(result.mask, result.w, result.h, SAM_DIM, SAM_DIM);
-    const fgBgDist = computeMaskFgBgDistance(smallMask, imgData.data, bgColor, SAM_DIM, SAM_DIM);
+    // Adaptive erosion based on fg-bg color distance (smallMask already computed above)
     let erosionPasses = fgBgDist > 80 ? 1 : fgBgDist > 50 ? 2 : fgBgDist > 30 ? 3 : 4;
     // Scale erosion passes for full-res (each pass removes 1px at SAM_DIM scale)
     const fullResErosion = Math.round(erosionPasses * (result.w / SAM_DIM));
@@ -1337,6 +1482,11 @@ async function addPieceAtClick(imgX, imgY) {
     const smoothPasses = Math.max(2, Math.round(2 * imgScale));
     for (let sp = 0; sp < smoothPasses; sp++) contour = smoothContour(contour, smoothK);
     contour = rdpSimplify(contour, Math.max(1.5, imgScale * 1.2));
+    if (isCalibrationPaper(contour)) {
+        log('Clicked on calibration paper — skipped (not a pattern piece)');
+        setStatus('Paper detected (not a piece)', 'ready');
+        return;
+    }
     const piece = {
         id: state.nextPieceId++,
         name: `Piece ${state.pieces.length + 1}`,
@@ -1435,10 +1585,12 @@ async function autoDetectAll() {
     }
     log(`After dedup: ${kept.length} unique pieces`);
     // Adaptive erosion + paper detection
-    let paperIdx = -1;
+    const paperIndices = new Set();
     const knownW = parseFloat(document.getElementById('calWidth').value) || 297;
     const knownH = parseFloat(document.getElementById('calHeight').value) || 210;
     const knownAR = Math.max(knownW, knownH) / Math.min(knownW, knownH);
+    const expectedPaperAreaPx = state.calibration.pixelsPerMm
+        ? (knownW * state.calibration.pixelsPerMm) * (knownH * state.calibration.pixelsPerMm) : 0;
     for (let i = 0; i < kept.length; i++) {
         const item = kept[i];
         // Upscale mask to SAM_DIM for color analysis
@@ -1450,26 +1602,39 @@ async function autoDetectAll() {
         // Calculate erosion passes
         let erosionPasses = fgBgDist > 80 ? 1 : fgBgDist > 50 ? 2 : fgBgDist > 30 ? 3 : 4;
         item.erosionPasses = erosionPasses;
-        // Check rectangularity for paper detection
+        // Check rectangularity + brightness for paper detection (paper must be white/bright)
         const rect = checkRectangularity(procMask, SAM_DIM, SAM_DIM);
-        if (rect.rectangularity > 0.85 && Math.abs(rect.aspectRatio - knownAR) < 0.2 && fgBgDist > 50) {
-            paperIdx = i;
-            const fullW = rect.bbW * (state.imgW / SAM_DIM);
-            const fullH = rect.bbH * (state.imgH / SAM_DIM);
-            const longerPx = Math.max(fullW, fullH);
-            const longerMm = Math.max(knownW, knownH);
-            state.calibration.pixelsPerMm = longerPx / longerMm;
-            updateScaleStatus();
-            const imgPct = item.areaPercent.toFixed(1);
-            log(`Auto-calibrated from paper: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm (${longerMm}mm = ${Math.round(longerPx)}px)`);
-            log(`Excluded calibration paper from pieces (${imgPct}% of image, rectangularity=${rect.rectangularity.toFixed(2)})`);
-            document.getElementById('calStatus').textContent = `Auto: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm`;
+        const meanBr = computeMaskMeanBrightness(procMask, imgData.data, SAM_DIM, SAM_DIM);
+        if (rect.rectangularity > 0.78 && Math.abs(rect.aspectRatio - knownAR) < 0.3 && meanBr > 150) {
+            paperIndices.add(i);
+            if (!state.calibration.pixelsPerMm) {
+                const fullW = rect.bbW * (state.imgW / SAM_DIM);
+                const fullH = rect.bbH * (state.imgH / SAM_DIM);
+                const longerPx = Math.max(fullW, fullH);
+                const longerMm = Math.max(knownW, knownH);
+                state.calibration.pixelsPerMm = longerPx / longerMm;
+                updateScaleStatus();
+                log(`Auto-calibrated from paper: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm (${longerMm}mm = ${Math.round(longerPx)}px, brightness=${Math.round(meanBr)})`);
+                document.getElementById('calStatus').textContent = `Auto: ${state.calibration.pixelsPerMm.toFixed(2)} px/mm`;
+            }
+            log(`Excluded calibration paper mask #${i} from pieces (${item.areaPercent.toFixed(1)}% of image, rect=${rect.rectangularity.toFixed(2)})`);
+            continue;
+        }
+        // Secondary exclusion: area-ratio match when calibration is already known
+        if (expectedPaperAreaPx > 0) {
+            const maskFullArea = item.areaPercent * 0.01 * state.imgW * state.imgH;
+            const areaRatio = maskFullArea / expectedPaperAreaPx;
+            if (areaRatio > 0.7 && areaRatio < 1.4 && rect.rectangularity > 0.70) {
+                paperIndices.add(i);
+                log(`Excluded paper-sized mask #${i} by area ratio (${areaRatio.toFixed(2)})`);
+            }
         }
     }
+    if (paperIndices.size > 0) log(`Paper exclusion: ${paperIndices.size} mask(s) removed`);
     // Build pieces (excluding paper)
     let refinedCount = 0;
     for (let i = 0; i < kept.length; i++) {
-        if (i === paperIdx) continue;
+        if (paperIndices.has(i)) continue;
         const item = kept[i];
         const fullMask = upscaleMaskBilinear(item.mask, item.maskW, item.maskH, state.imgW, state.imgH);
         // Erosion at full res scale
@@ -1499,11 +1664,10 @@ async function autoDetectAll() {
         };
         state.pieces.push(piece);
     }
-    const addedCount = paperIdx >= 0 ? kept.length - 1 : kept.length;
     updatePieceCount(); renderPieceList(); redrawAll();
     btn.disabled = false; progressFill.style.width = '0%';
     setStatus(`Auto-detected ${state.pieces.length} pieces`, 'ready');
-    log(`Auto-detection complete: ${state.pieces.length} pieces added${paperIdx >= 0 ? ' (paper used for auto-calibration)' : ''}`);
+    log(`Auto-detection complete: ${state.pieces.length} pieces added${paperIndices.size > 0 ? ` (${paperIndices.size} paper mask(s) excluded)` : ''}`);
     if (state.pieces.length > 0) goToStep(4);
 }
 // ============================================================
@@ -1974,7 +2138,7 @@ document.getElementById('pushConfirm').addEventListener('click', async () => {
             for (const [x,y] of boundary) { if(x<bb.x0)bb.x0=x; if(y<bb.y0)bb.y0=y; if(x>bb.x1)bb.x1=x; if(y>bb.y1)bb.y1=y; }
             const area = Math.abs(boundary.reduce((s,[x,y],idx)=>{ const [nx,ny]=boundary[(idx+1)%boundary.length]; return s+(x*ny-nx*y); },0)/2);
             for (let q = 0; q < qty; q++) {
-                piecesData.push({ pts: boundary.map(([x,y])=>({x:+x.toFixed(3),y:+y.toFixed(3)})), bbox:{x:bb.x0,y:bb.y0,w:bb.x1-bb.x0,h:bb.y1-bb.y0}, area, layer:piece.name, children:[] });
+                piecesData.push({ pts: boundary.map(([x,y])=>[+x.toFixed(3),+y.toFixed(3)]), bbox:{x:bb.x0,y:bb.y0,w:bb.x1-bb.x0,h:bb.y1-bb.y0}, area, layer:piece.name, children:[] });
             }
         });
         if (!piecesData.length) { log('No pieces with qty > 0', 'warn'); return; }

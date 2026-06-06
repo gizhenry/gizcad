@@ -341,14 +341,47 @@ function initGlobalEvents() {
         })();
         return;
       }
-      PageRouter.navigateTo(e.data.view);
       if (e.data.view === 'patterninq') {
-        const inqFrame = document.getElementById('iframe-patterninq');
-        if (inqFrame && inqFrame.contentWindow) {
-          inqFrame.contentWindow.postMessage({ type: 'check-pushed-pieces' }, '*');
-          setTimeout(() => inqFrame.contentWindow.postMessage({ type: 'check-pushed-pieces' }, '*'), 300);
-        }
+        (async () => {
+          let pushedPayload = null;
+          try {
+            pushedPayload = await new Promise((resolve) => {
+              const req = indexedDB.open('CadShot_InqPush', 1);
+              req.onsuccess = (ev) => {
+                const db = ev.target.result;
+                if (!db.objectStoreNames.contains('push')) { resolve(null); return; }
+                const tx = db.transaction('push', 'readonly');
+                const r  = tx.objectStore('push').get('cadshot_push');
+                r.onsuccess = () => resolve(r.result || null);
+                r.onerror   = () => resolve(null);
+              };
+              req.onerror = () => resolve(null);
+            });
+          } catch (_) { pushedPayload = null; }
+
+          PageRouter.navigateTo('patterninq');
+
+          const inqFrame = document.getElementById('iframe-patterninq');
+          if (!inqFrame || !inqFrame.contentWindow) return;
+
+          if (pushedPayload && pushedPayload.pieces && pushedPayload.pieces.length) {
+            const sendDirect = () =>
+              inqFrame.contentWindow.postMessage({ type: 'push-pieces-direct', payload: pushedPayload }, '*');
+            sendDirect();
+            setTimeout(sendDirect, 300);
+            setTimeout(sendDirect, 800);
+          } else {
+            const ping = () =>
+              inqFrame.contentWindow.postMessage({ type: 'check-pushed-pieces' }, '*');
+            ping();
+            setTimeout(ping, 300);
+            setTimeout(ping, 800);
+            setTimeout(ping, 1800);
+          }
+        })();
+        return;
       }
+      PageRouter.navigateTo(e.data.view);
     }
   });
 }

@@ -227,6 +227,27 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);background:var(--bg);disp
         <span style="font-size:9px;opacity:.7">Optional — replaces rectangle sheet below</span>
       </div>
       <input type="file" id="fi-h" name="fi-h" accept=".dxf,.svg">
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <button id="ns-btn-camera" class="bo" style="flex:1;border-color:#00c896;color:#00c896;font-size:10px;margin:0;">📷 Camera</button>
+        <button id="ns-btn-upload-img" class="bo" style="flex:1;border-color:#0088ff;color:#0088ff;font-size:10px;margin:0;">🖼 Photo</button>
+      </div>
+      <input type="file" id="fi-vision-img" accept="image/*" style="display:none">
+      <!-- Vision controls (shown after image loaded) -->
+      <div id="vision-inline-controls" style="display:none;margin-bottom:8px;">
+        <div style="background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.2);border-radius:5px;padding:8px 10px;">
+          <div id="visionModelStatus" style="font-size:10px;color:var(--mut);margin-bottom:5px;">Model unloaded</div>
+          <div style="height:3px;background:var(--brd);border-radius:2px;margin-bottom:6px;overflow:hidden;"><div id="visionProgress" style="height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));width:0%;transition:width .1s;"></div></div>
+          <button id="btnVisionLoadModel" class="bo" style="width:100%;margin:0 0 5px;border-color:var(--acc);color:var(--acc);font-size:10px;">Load SAM Model</button>
+          <button id="btnVisionDetect" class="btn bst" style="width:100%;font-size:11px;" disabled>Detect Hide Boundary</button>
+          <div style="display:flex;gap:6px;margin-top:5px;align-items:center;">
+            <span style="font-size:9px;color:var(--mut);white-space:nowrap;">Paper (mm)</span>
+            <input type="number" id="visionCalWidth" value="297" min="50" max="1000" style="flex:1;background:var(--bg);border:1px solid var(--brd);color:var(--snow);font-size:10px;padding:2px 4px;border-radius:3px;width:0;">
+            <span style="font-size:9px;color:var(--mut);">×</span>
+            <input type="number" id="visionCalHeight" value="210" min="50" max="1000" style="flex:1;background:var(--bg);border:1px solid var(--brd);color:var(--snow);font-size:10px;padding:2px 4px;border-radius:3px;width:0;">
+          </div>
+          <button id="btn-push-vision-boundary" class="btn br" style="width:100%;margin-top:5px;font-size:11px;" disabled>✓ Accept &amp; Use for Nesting</button>
+        </div>
+      </div>
       <div id="hide-card">
         <div class="hc-row">
           <span class="hc-icon">📐</span>
@@ -275,10 +296,10 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);background:var(--bg);disp
       </div>
       <div class="f"><label for="compact">Compaction passes — shake &amp; settle after nesting</label>
         <select id="compact" name="compact">
-          <option value="0">None (fastest)</option>
+          <option value="0" selected>None (skip)</option>
           <option value="1">1 pass</option>
           <option value="2">2 passes</option>
-          <option value="3" selected>3 passes (recommended)</option>
+          <option value="3">3 passes (recommended)</option>
         </select>
       </div>
       <div class="f"><label for="multishake">Multi-direction shake — cycles directions to squeeze more in</label>
@@ -402,8 +423,11 @@ body{font-family:'DM Sans',sans-serif;color:var(--txt);background:var(--bg);disp
       <button class="bo" id="btn-gcode-cut" disabled>Generate G-code (CUT only)</button>
       </div>
     </div>
+
   </div>
 </div>
+
+<video id="camera-feed" autoplay playsinline style="display:none;"></video>
 
 <div id="mn">
   <div id="toolbar">
@@ -890,6 +914,12 @@ class CollisionEngine{
     ctx.beginPath();
     this.hide.poly.forEach(([x,y],i)=>i===0?ctx.moveTo(x*s,y*s):ctx.lineTo(x*s,y*s));
     ctx.closePath();ctx.stroke();
+    // Add spacing buffer around each hole so parts can't be placed flush against hole edges
+    for(const hole of this.hide.holes){
+      ctx.beginPath();
+      hole.forEach(([x,y],i)=>i===0?ctx.moveTo(x*s,y*s):ctx.lineTo(x*s,y*s));
+      ctx.closePath();ctx.stroke();
+    }
     // DIAG: verify mask has both free and occupied pixels
     const diag=ctx.getImageData(0,0,cw,ch).data;
     let occ=0,free=0;
@@ -1419,9 +1449,10 @@ class GLDisplay{
 function exportDXF(type){
   if(!S.placed.length){setLog('Nothing placed yet');return;}
   const pwm=S.pwm||{cut:100,hole:80,mark:25,engrave:15};
+  const H=S.sheetH;
   let ents='';
   for(const p of S.placed){
-    const xf=pts=>pts.map(([x,y])=>[x+p.tx,y+p.ty]);
+    const xf=pts=>pts.map(([x,y])=>[x+p.tx,H-(y+p.ty)]);
     if(type==='cut'){
       if(pwm.cut>0){
         const pts=xf(p.boundary);
@@ -1551,12 +1582,13 @@ function generateGcode(type){
     curY=chosen.boundary[0][1]+chosen.ty+oy;
   }
 
+  const H=S.sheetH;
   for(let pi=0;pi<ordered.length;pi++){
     const p=ordered[pi];
     const part=S.parts.find(x=>x.id===p.partId);
     lines.push(`; --- Part ${pi+1}: ${part?part.name:'unknown'} ---`);
 
-    const xf=pts=>pts.map(([x,y])=>[x+p.tx+ox,y+p.ty+oy]);
+    const xf=pts=>pts.map(([x,y])=>[x+p.tx+ox,H-(y+p.ty+oy)]);
 
     // Collect layers in correct order: engrave -> mark -> hole -> cut
     const layers=[];
@@ -3033,7 +3065,9 @@ window.addEventListener('resize',zoomFit);
   _initProjector();
 })();
 
+
 // ── RECEIVE MESSAGES FROM PARENT FRAME ────────────────────
+let _lastDirectPushTs = 0;
 window.addEventListener('message', function(e) {
   if (!e.data || !e.data.type) return;
 
@@ -3041,6 +3075,9 @@ window.addEventListener('message', function(e) {
   if (e.data.type === 'push-parts-direct') {
     const job = e.data.job;
     if (job && job.parts && job.parts.length) {
+      // Ignore retries for the same push (app.js sends 3× for reliability)
+      if (job.ts && job.ts === _lastDirectPushTs) return;
+      _lastDirectPushTs = job.ts || 0;
       // Re-write record so _loadPushedJob finds it, then call it normally
       _openPushDB().then(db => {
         if (!db) return;
@@ -3070,7 +3107,842 @@ window.addEventListener('message', function(e) {
     loadParts(file);
     return;
   }
+
 });
+
+// ── BUILT-IN LEATHER VISION (full backend with paper calibration + hole detection) ──
+(function _initVisionMode(){
+  const vControls = document.getElementById('vision-inline-controls');
+  const vProgress = document.getElementById('visionProgress');
+  const vModelStatus = document.getElementById('visionModelStatus');
+  const btnCamera = document.getElementById('ns-btn-camera');
+  const btnUpload = document.getElementById('ns-btn-upload-img');
+  const btnLoadModel = document.getElementById('btnVisionLoadModel');
+  const btnDetect = document.getElementById('btnVisionDetect');
+  const btnAccept = document.getElementById('btn-push-vision-boundary');
+  const fileInput = document.getElementById('fi-vision-img');
+  const hint = document.getElementById('hint');
+  if (!btnCamera) return;
+
+  // Create a dedicated overlay canvas for vision (sits on top of #dc)
+  const vw = document.getElementById('vw');
+  const vCanvas = document.createElement('canvas');
+  vCanvas.id = 'vision-canvas';
+  vCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:none;z-index:5;';
+  vw.appendChild(vCanvas);
+  const vCtx = vCanvas.getContext('2d');
+
+  let vModel = null, vProcessor = null, vModelReady = false;
+  let vImgCanvas = null, vImgCtx = null, vEmbeddings = null;
+  let vImgW = 0, vImgH = 0;
+  let vDetectedPoly = null, vDetectedHoles = [], vPaperHole = null, vCalibPxPerMm = null;
+  let vParams = { gridSize: 8, maskThreshold: 0.85, epsilon: 1.0, minAreaPercent: 1 };
+
+  function showVisionControls() { if (vControls) vControls.style.display = 'block'; }
+
+  function renderVisionCanvas() {
+    if (!vImgCanvas) return;
+    vCanvas.style.display = 'block';
+    if (hint) hint.style.display = 'none';
+    const dpr = window.devicePixelRatio || 1;
+    const cw = vw.clientWidth, ch = vw.clientHeight;
+    vCanvas.width = cw * dpr; vCanvas.height = ch * dpr;
+    vCanvas.style.width = cw + 'px'; vCanvas.style.height = ch + 'px';
+    vCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const sx = cw / vImgW, sy = ch / vImgH;
+    const scale = Math.min(sx, sy);
+    const offX = (cw - vImgW * scale) / 2, offY = (ch - vImgH * scale) / 2;
+    vCtx.fillStyle = '#050a12';
+    vCtx.fillRect(0, 0, cw, ch);
+    vCtx.drawImage(vImgCanvas, 0, 0, vImgW, vImgH, offX, offY, vImgW * scale, vImgH * scale);
+    if (vDetectedPoly && vDetectedPoly.length > 2) {
+      vCtx.save();
+      vCtx.strokeStyle = '#00c896'; vCtx.lineWidth = 2.5; vCtx.lineJoin = 'round';
+      vCtx.shadowColor = '#00c896'; vCtx.shadowBlur = 8;
+      vCtx.fillStyle = 'rgba(0,200,150,0.15)';
+      vCtx.beginPath();
+      vCtx.moveTo(vDetectedPoly[0][0]*scale+offX, vDetectedPoly[0][1]*scale+offY);
+      for (let i=1;i<vDetectedPoly.length;i++) vCtx.lineTo(vDetectedPoly[i][0]*scale+offX, vDetectedPoly[i][1]*scale+offY);
+      vCtx.closePath(); vCtx.fill(); vCtx.stroke();
+      vCtx.restore();
+    }
+    // Draw physical holes in red
+    if (vDetectedHoles && vDetectedHoles.length) {
+      for (const hole of vDetectedHoles) {
+        if (!hole || hole.length < 3) continue;
+        vCtx.save();
+        vCtx.strokeStyle = '#ff4444'; vCtx.lineWidth = 2; vCtx.lineJoin = 'round';
+        vCtx.fillStyle = 'rgba(255,60,60,0.25)';
+        vCtx.beginPath();
+        vCtx.moveTo(hole[0][0]*scale+offX, hole[0][1]*scale+offY);
+        for (let i=1;i<hole.length;i++) vCtx.lineTo(hole[i][0]*scale+offX, hole[i][1]*scale+offY);
+        vCtx.closePath(); vCtx.fill(); vCtx.stroke();
+        vCtx.restore();
+      }
+    }
+    // Draw paper calibration reference in amber
+    if (vPaperHole && vPaperHole.length > 2) {
+      vCtx.save();
+      vCtx.strokeStyle = '#ffb020'; vCtx.lineWidth = 2; vCtx.lineJoin = 'round';
+      vCtx.setLineDash([6,4]);
+      vCtx.beginPath();
+      vCtx.moveTo(vPaperHole[0][0]*scale+offX, vPaperHole[0][1]*scale+offY);
+      for (let i=1;i<vPaperHole.length;i++) vCtx.lineTo(vPaperHole[i][0]*scale+offX, vPaperHole[i][1]*scale+offY);
+      vCtx.closePath(); vCtx.stroke();
+      vCtx.setLineDash([]);
+      vCtx.fillStyle = '#ffb020'; vCtx.font = '11px sans-serif'; vCtx.textAlign = 'center';
+      const pcx = vPaperHole.reduce((s,p)=>s+p[0],0)/vPaperHole.length;
+      const pcy = vPaperHole.reduce((s,p)=>s+p[1],0)/vPaperHole.length;
+      vCtx.fillText(`📐 Calibration (${vCalibPxPerMm?vCalibPxPerMm.toFixed(1)+' px/mm':'?'})`, pcx*scale+offX, pcy*scale+offY);
+      vCtx.restore();
+    }
+  }
+
+  function hideVisionCanvas() { vCanvas.style.display = 'none'; }
+
+  // Auto-detect trigger: runs detection as soon as both model and image are ready
+  let _autoDetectPending = false;
+  function _triggerAutoDetect() {
+    if (vModelReady && vImgCanvas && !_autoDetectPending) {
+      _autoDetectPending = true;
+      setTimeout(() => { _autoDetectPending = false; btnDetect.click(); }, 100);
+    }
+  }
+
+  // Camera
+  btnCamera.addEventListener('click', async () => {
+    showVisionControls();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1920},height:{ideal:1080},facingMode:'environment'}});
+      const video = document.getElementById('camera-feed');
+      video.srcObject = stream; video.style.display = 'none';
+      await video.play(); await new Promise(r=>setTimeout(r,500));
+      vImgW = video.videoWidth; vImgH = video.videoHeight;
+      vImgCanvas = document.createElement('canvas');
+      vImgCanvas.width = vImgW; vImgCanvas.height = vImgH;
+      vImgCtx = vImgCanvas.getContext('2d',{willReadFrequently:true});
+      vImgCtx.drawImage(video, 0, 0);
+      stream.getTracks().forEach(t=>t.stop()); video.style.display = 'none';
+      vDetectedPoly = null; vDetectedHoles = []; vPaperHole = null; vEmbeddings = null; btnAccept.disabled = true;
+      renderVisionCanvas();
+      if (vModelReady) btnDetect.disabled = false;
+      setLog(`Camera captured: ${vImgW}×${vImgH}`);
+      _triggerAutoDetect();
+    } catch(e) { setLog(`Camera error: ${e.message}`); }
+  });
+
+  // File upload
+  btnUpload.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    if (!e.target.files[0]) return;
+    showVisionControls();
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        vImgW = img.naturalWidth; vImgH = img.naturalHeight;
+        vImgCanvas = document.createElement('canvas');
+        vImgCanvas.width = vImgW; vImgCanvas.height = vImgH;
+        vImgCtx = vImgCanvas.getContext('2d',{willReadFrequently:true});
+        vImgCtx.drawImage(img, 0, 0);
+        vDetectedPoly = null; vDetectedHoles = []; vPaperHole = null; vEmbeddings = null; btnAccept.disabled = true;
+        renderVisionCanvas();
+        if (vModelReady) btnDetect.disabled = false;
+        setLog(`Image loaded: ${vImgW}×${vImgH}`);
+        _triggerAutoDetect();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(e.target.files[0]);
+  });
+
+  function stopCamera() { const v=document.getElementById('camera-feed'); if(v&&v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;} }
+
+  // Model loading (with WebGPU detection)
+  async function _loadVisionModel() {
+    if (vModelReady) return;
+    btnLoadModel.disabled = true;
+    vModelStatus.textContent = 'Loading SAM model...';
+    vProgress.style.width = '20%';
+    try {
+      const {env, SamModel, AutoProcessor, RawImage, Tensor} = await import('https://unpkg.com/@huggingface/transformers@3.5.1/dist/transformers.min.js');
+      env.useBrowserCache = true; env.allowLocalModels = false;
+      env.backends.onnx = {wasm:{numThreads:navigator.hardwareConcurrency||4, wasmPaths:'https://unpkg.com/@huggingface/transformers@3.5.1/dist/'}};
+      // Try WebGPU
+      let device = 'wasm';
+      if (navigator.gpu) {
+        let adapter = await navigator.gpu.requestAdapter({powerPreference:'high-performance'});
+        if (!adapter) adapter = await navigator.gpu.requestAdapter();
+        if (adapter) {
+          const info = adapter.info||{};
+          const name = (info.device||info.description||info.vendor||'').toLowerCase();
+          if (!name.includes('intel')) { device = 'webgpu'; env.backends.onnx.webgpu = {powerPreference:'high-performance'}; }
+        }
+      }
+      vModelStatus.textContent = 'Loading processor...'; vProgress.style.width = '40%';
+      vProcessor = await AutoProcessor.from_pretrained('Xenova/sam-vit-base');
+      vModelStatus.textContent = `Loading model (${device.toUpperCase()})...`; vProgress.style.width = '60%';
+      vModel = await SamModel.from_pretrained('Xenova/sam-vit-base', {dtype:'fp32', device});
+      vProgress.style.width = '100%';
+      vModelReady = true;
+      vModelStatus.textContent = `SAM-Base active (${device.toUpperCase()})`;
+      btnLoadModel.textContent = 'Model Active ✓'; btnLoadModel.disabled = true;
+      if (vImgCanvas) btnDetect.disabled = false;
+      window._visionSAM = {env, SamModel, AutoProcessor, RawImage, Tensor};
+      setLog(`SAM model loaded on ${device.toUpperCase()}`);
+      // If an image was already loaded while model was loading, auto-detect now
+      _triggerAutoDetect();
+    } catch(e) {
+      vModelStatus.textContent = `Error: ${e.message}`;
+      btnLoadModel.disabled = false; btnLoadModel.textContent = 'Retry Load';
+      vProgress.style.width = '0%';
+    }
+  }
+  btnLoadModel.addEventListener('click', _loadVisionModel);
+
+  // Auto-load model immediately on init
+  _loadVisionModel();
+
+  // ═══ SPECULAR HIGHLIGHT SUPPRESSION (from cncVisionPRO_B) ═══
+  function _suppressSpecular(imageData) {
+    const data = imageData.data;
+    const len = data.length;
+    for (let i = 0; i < len; i += 4) {
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const maxC = Math.max(r, g, b);
+      const minC = Math.min(r, g, b);
+      const brightness = (r + g + b) / 3;
+      const saturation = maxC > 0 ? (maxC - minC) / maxC : 0;
+      if (brightness > 200 && saturation < 0.15) {
+        const dampen = 0.6;
+        data[i]   = Math.round(r * dampen + 128 * (1 - dampen));
+        data[i+1] = Math.round(g * dampen + 128 * (1 - dampen));
+        data[i+2] = Math.round(b * dampen + 128 * (1 - dampen));
+      }
+    }
+    return imageData;
+  }
+
+  // ═══ COLOR-BASED MASK REFINEMENT (from cncVisionPRO_B) ═══
+  function _refineByColor(mask, w, h, pixelData) {
+    const px = pixelData;
+    const vals = [];
+    let totalOnPixels = 0;
+    const step = Math.max(1, Math.floor(Math.sqrt(w * h / 50000)));
+    for (let y = 0; y < h; y += step) {
+      for (let x = 0; x < w; x += step) {
+        const i = y * w + x;
+        if (!mask[i]) continue;
+        totalOnPixels++;
+        const idx = i * 4;
+        vals.push(0.299 * px[idx] + 0.587 * px[idx+1] + 0.114 * px[idx+2]);
+      }
+    }
+    if (vals.length < 200) return;
+    vals.sort((a, b2) => a - b2);
+    const median = vals[Math.floor(vals.length / 2)];
+    const q1 = vals[Math.floor(vals.length * 0.25)];
+    const q3 = vals[Math.floor(vals.length * 0.75)];
+    const iqr = q3 - q1;
+    const loThresh = median - Math.max(25, iqr * 2);
+    const hiThresh = median + Math.max(25, iqr * 2);
+
+    const outlierMask = new Uint8Array(w * h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (!mask[i]) continue;
+        const idx = i * 4;
+        const br = 0.299 * px[idx] + 0.587 * px[idx+1] + 0.114 * px[idx+2];
+        if (br < loThresh || br > hiThresh) outlierMask[i] = 1;
+      }
+    }
+    _morphClose(outlierMask, w, h, 4);
+
+    const labels = new Int32Array(w * h);
+    let nextLabel = 1;
+    const regionInfo = [];
+    const stack = [];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (!outlierMask[i] || labels[i]) continue;
+        const lbl = nextLabel++;
+        let count = 0, touchesMaskEdge = false;
+        stack.length = 0;
+        stack.push(i);
+        labels[i] = lbl;
+        while (stack.length) {
+          const p = stack.pop();
+          count++;
+          const py = (p / w) | 0, px2 = p - py * w;
+          if (px2 > 0 && !mask[p-1]) touchesMaskEdge = true;
+          if (px2 < w-1 && !mask[p+1]) touchesMaskEdge = true;
+          if (py > 0 && !mask[p-w]) touchesMaskEdge = true;
+          if (py < h-1 && !mask[p+w]) touchesMaskEdge = true;
+          const nbrs = [px2>0?p-1:-1, px2<w-1?p+1:-1, py>0?p-w:-1, py<h-1?p+w:-1];
+          for (const np of nbrs) {
+            if (np >= 0 && outlierMask[np] && !labels[np]) { labels[np] = lbl; stack.push(np); }
+          }
+        }
+        regionInfo.push({ label: lbl, area: count, touchesMaskEdge });
+      }
+    }
+    const maskArea = totalOnPixels * step * step;
+    const minCarvePixels = maskArea * 0.003;
+    for (const region of regionInfo) {
+      if (region.touchesMaskEdge) continue;
+      if (region.area < minCarvePixels) continue;
+      for (let i = 0; i < labels.length; i++) {
+        if (labels[i] === region.label) mask[i] = 0;
+      }
+    }
+  }
+
+  // ═══ MASK CONTAINMENT CHECK ═══
+  function _maskContains(outerData, innerData, len) {
+    let innerOn = 0, alsoOuter = 0;
+    for (let i = 0; i < len; i++) {
+      if (innerData[i] > 0) { innerOn++; if (outerData[i] > 0) alsoOuter++; }
+    }
+    return innerOn > 0 ? alsoOuter / innerOn : 0;
+  }
+
+  // ═══ DILATE MASK ═══
+  function _dilateMask(mask, w, h, radius) {
+    const out = new Uint8Array(mask.length);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let on = 0;
+        for (let dy = -radius; dy <= radius && !on; dy++) {
+          const ny = y + dy; if (ny < 0 || ny >= h) continue;
+          for (let dx = -radius; dx <= radius; dx++) {
+            const nx = x + dx; if (nx < 0 || nx >= w) continue;
+            if (mask[ny * w + nx]) { on = 1; break; }
+          }
+        }
+        out[y * w + x] = on;
+      }
+    }
+    return out;
+  }
+
+  // ═══ FULL GRID-BASED HIDE DETECTION with paper calibration + hole ═══
+  btnDetect.addEventListener('click', async () => {
+    if (!vModelReady || !vImgCanvas) return;
+    const {RawImage, Tensor} = window._visionSAM;
+    btnDetect.disabled = true; btnDetect.textContent = 'Detecting...';
+    vProgress.style.width = '5%';
+    setLog('Starting hide detection...');
+    try {
+      const SAM_DIM = 1024;
+      const rc = document.createElement('canvas'); rc.width=SAM_DIM; rc.height=SAM_DIM;
+      const rCtx = rc.getContext('2d');
+      rCtx.imageSmoothingEnabled=true; rCtx.imageSmoothingQuality='high';
+      rCtx.drawImage(vImgCanvas, 0,0,vImgW,vImgH, 0,0,SAM_DIM,SAM_DIM);
+
+      // Apply specular highlight suppression before SAM (from cncVisionPRO_B)
+      let imgDataSAM = rCtx.getImageData(0,0,SAM_DIM,SAM_DIM);
+      imgDataSAM = _suppressSpecular(imgDataSAM);
+      rCtx.putImageData(imgDataSAM, 0, 0);
+      imgDataSAM = rCtx.getImageData(0,0,SAM_DIM,SAM_DIM);
+
+      const rgb = new Uint8ClampedArray(SAM_DIM*SAM_DIM*3);
+      for(let i=0;i<SAM_DIM*SAM_DIM;i++){rgb[i*3]=imgDataSAM.data[i*4];rgb[i*3+1]=imgDataSAM.data[i*4+1];rgb[i*3+2]=imgDataSAM.data[i*4+2];}
+      const rawImage = new RawImage(rgb, SAM_DIM, SAM_DIM, 3);
+      const inputs = await vProcessor(rawImage);
+      vProgress.style.width = '15%';
+      vEmbeddings = typeof vModel.get_image_embeddings==='function' ? await vModel.get_image_embeddings(inputs) : inputs;
+      vProgress.style.width = '30%';
+      setLog('Image encoded (specular suppressed) — running grid scan...');
+
+      // Grid scan — collect ALL masks
+      const gridSize = vParams.gridSize;
+      const stepX = SAM_DIM/gridSize, stepY = SAM_DIM/gridSize;
+      const allMasks = [];
+      for (let gy=0; gy<gridSize; gy++) {
+        for (let gx=0; gx<gridSize; gx++) {
+          const px = Math.round(stepX*(gx+0.5)), py = Math.round(stepY*(gy+0.5));
+          try {
+            const ip = new Tensor('float32',[px,py],[1,1,1,2]);
+            const il = new Tensor('int64',[1n],[1,1,1]);
+            const out = await vModel({...vEmbeddings, input_points:ip, input_labels:il});
+            const scores = out.iou_scores.data;
+            for (let m=0;m<scores.length;m++) {
+              if (scores[m]<vParams.maskThreshold) continue;
+              const dims=out.pred_masks.dims;
+              const mH=dims[dims.length-2],mW=dims[dims.length-1],mSz=mW*mH;
+              const mData=out.pred_masks.data.slice(m*mSz,(m+1)*mSz);
+              let area=0; for(let p2=0;p2<mSz;p2++) if(mData[p2]>0) area++;
+              const pct=(area/mSz)*100;
+              if (pct<0.5||pct>80) continue;
+              allMasks.push({data:mData,w:mW,h:mH,area,areaPercent:pct,score:Number(scores[m])});
+            }
+          } catch(e){}
+          vProgress.style.width = `${30+((gy*gridSize+gx+1)/(gridSize*gridSize))*55}%`;
+          await new Promise(r=>setTimeout(r,0));
+        }
+      }
+      setLog(`Grid done: ${allMasks.length} candidate masks`);
+      if (!allMasks.length) { setLog('No masks found','warn'); btnDetect.disabled=false; btnDetect.textContent='Detect Hide Boundary'; vProgress.style.width='0%'; return; }
+
+      // Bucket by area (same as cncVisionPRO_B)
+      allMasks.sort((a,b)=>a.areaPercent-b.areaPercent);
+      const buckets = [];
+      for (const mask of allMasks) {
+        let placed=false;
+        for (const b of buckets) { if(Math.abs(mask.areaPercent-b.avgArea)<8){b.masks.push(mask);b.avgArea=b.masks.reduce((s,m2)=>s+m2.areaPercent,0)/b.masks.length;b.bestScore=Math.max(b.bestScore,mask.score);placed=true;break;} }
+        if(!placed) buckets.push({masks:[mask],avgArea:mask.areaPercent,bestScore:mask.score});
+      }
+      buckets.sort((a,b)=>b.masks.length-a.masks.length);
+      setLog(`${buckets.length} buckets: ${buckets.slice(0,5).map(b=>`${b.avgArea.toFixed(0)}%(${b.masks.length}v)`).join(', ')}`);
+
+      // ═══ WEIGHTED SCORING (ported from cncVisionPRO_B) ═══
+      const totalVotes = buckets.reduce((s,b)=>s+b.masks.length,0)||1;
+      let hideBucket = null, paperBucket = null;
+
+      // Pre-compute bbox + compactness + edge touches for each bucket
+      for (const b of buckets) {
+        b.masks.sort((a2,b2)=>b2.score-a2.score);
+        b.rep = b.masks[0];
+        let bx0=b.rep.w,by0=b.rep.h,bx1=0,by1=0;
+        for(let y=0;y<b.rep.h;y++)for(let x=0;x<b.rep.w;x++)if(b.rep.data[y*b.rep.w+x]>0){if(x<bx0)bx0=x;if(x>bx1)bx1=x;if(y<by0)by0=y;if(y>by1)by1=y;}
+        b.bbox={x0:bx0,y0:by0,x1:bx1,y1:by1,w:bx1-bx0,h:by1-by0};
+        const bbA=Math.max(1,b.bbox.w*b.bbox.h);
+        b.compact = b.rep.area/bbA;
+        b.ar = b.bbox.w>0&&b.bbox.h>0 ? Math.max(b.bbox.w,b.bbox.h)/Math.min(b.bbox.w,b.bbox.h) : 1;
+        const imgArea = Math.max(1, b.rep.w * b.rep.h);
+        b.bboxCoverage = bbA / imgArea;
+        b.isMeshLike = b.bboxCoverage > 0.85 && b.compact < 0.55;
+        // Edge touching
+        let edges=0;const d=b.rep.data,mw=b.rep.w,mh=b.rep.h;
+        let et=0,eb=0,el=0,er=0;
+        for(let x=0;x<mw;x++){if(d[x]>0)et++;if(d[(mh-1)*mw+x]>0)eb++;}
+        for(let y=0;y<mh;y++){if(d[y*mw]>0)el++;if(d[y*mw+(mw-1)]>0)er++;}
+        if(et>5)edges++;if(eb>5)edges++;if(el>5)edges++;if(er>5)edges++;
+        b.edges=edges;
+        b.edgeTouches = {top:et,bottom:eb,left:el,right:er};
+      }
+
+      // Weighted scoring system from cncVisionPRO_B
+      const MAX_HIDE_AREA = 65;
+      const MIN_HIDE_AREA = 3;
+      const scored = buckets.map(b => {
+        const voteShare = b.masks.length / totalVotes;
+        const sizeOk = b.avgArea >= MIN_HIDE_AREA && b.avgArea <= MAX_HIDE_AREA;
+        const sizePenalty = !sizeOk ? -1 : 0;
+        const _bw = b.rep.w, _bh = b.rep.h;
+        const sigEdgeW = _bw * 0.25, sigEdgeH = _bh * 0.25;
+        let edgePenalty = 0, heavyEdges = 0;
+        if (b.edgeTouches.top > sigEdgeW) heavyEdges++;
+        if (b.edgeTouches.bottom > sigEdgeW) heavyEdges++;
+        if (b.edgeTouches.left > sigEdgeH) heavyEdges++;
+        if (b.edgeTouches.right > sigEdgeH) heavyEdges++;
+        if (heavyEdges >= 3) edgePenalty = -2.0;
+        else if (heavyEdges === 2) edgePenalty = -0.6;
+        else if (heavyEdges === 1) edgePenalty = -0.15;
+
+        let containsCount = 0, containedPixelRatio = 0;
+        for (const other of buckets) {
+          if (other === b || other.avgArea >= b.avgArea) continue;
+          const ratio = _maskContains(b.rep.data, other.rep.data, b.rep.w * b.rep.h);
+          if (ratio > 0.7) { containsCount++; containedPixelRatio += other.avgArea; }
+        }
+        const containmentBonus = containsCount > 0 ? Math.min(0.4, containsCount * 0.15 + containedPixelRatio / 100) : 0;
+        const samScore = Math.min(1, b.bestScore || 0);
+        let shapePenalty = 0;
+        if (b.isMeshLike) shapePenalty -= 0.8;
+        else if (b.compact < 0.4) shapePenalty -= 0.3;
+        const shapeBonus = b.compact >= 0.5 && b.compact <= 0.85 ? 0.15 : 0;
+
+        const composite = voteShare * 0.40 + samScore * 0.15 + containmentBonus * 0.20 + shapeBonus + sizePenalty + edgePenalty + shapePenalty;
+        return { bucket: b, composite, voteShare, containmentBonus, edgePenalty };
+      });
+      scored.sort((a, b) => b.composite - a.composite);
+
+      if (scored.length && scored[0].composite > 0) {
+        hideBucket = scored[0].bucket;
+      }
+
+      // Fallback: largest area bucket that isn't background
+      if (!hideBucket) {
+        const byArea = [...buckets].sort((a,b)=>b.avgArea-a.avgArea);
+        for (const b of byArea) {
+          if (b.avgArea > 70) continue;
+          if (b.edges >= 3) continue;
+          if (b.avgArea < 5) continue;
+          hideBucket = b;
+          break;
+        }
+      }
+
+      // PAPER = small, highly rectangular, aspect ratio matches configured paper size, bright center
+      // Must be INSIDE the hide (smaller area)
+      const _calW = parseFloat(document.getElementById('visionCalWidth').value) || 297;
+      const _calH = parseFloat(document.getElementById('visionCalHeight').value) || 210;
+      const _targetAR = Math.max(_calW, _calH) / Math.min(_calW, _calH);
+      if (hideBucket) {
+        for (const b of buckets) {
+          if (b === hideBucket) continue;
+          if (b.avgArea >= hideBucket.avgArea) continue;
+          if (b.avgArea > 15) continue; // paper is small relative to hide
+          if (b.compact < 0.82) continue;
+          if (Math.abs(b.ar - _targetAR) > 0.3) continue;
+          // Check brightness at center of this mask
+          const cx2 = Math.round((b.bbox.x0+b.bbox.x1)/2 * (SAM_DIM/b.rep.w));
+          const cy2 = Math.round((b.bbox.y0+b.bbox.y1)/2 * (SAM_DIM/b.rep.h));
+          const pi = (cy2*SAM_DIM+cx2)*4;
+          const br = (imgDataSAM.data[pi]+imgDataSAM.data[pi+1]+imgDataSAM.data[pi+2])/3;
+          if (br > 150) { paperBucket = b; break; }
+          // Also accept if very rectangular and close AR even if not super bright (shadowed paper)
+          if (b.compact > 0.88 && Math.abs(b.ar - _targetAR) < 0.2) { paperBucket = b; break; }
+        }
+      }
+
+      if (!hideBucket) { setLog('No hide found — try adjusting threshold','warn'); btnDetect.disabled=false; btnDetect.textContent='Detect Hide Boundary'; vProgress.style.width='0%'; return; }
+
+      setLog(`Hide: ${hideBucket.avgArea.toFixed(1)}% (${hideBucket.masks.length} votes)${paperBucket ? ` | Paper: ${paperBucket.avgArea.toFixed(1)}%` : ''}`);
+
+      // ── Adjacency-based mask union (from cncVisionPRO_B) ──
+      // Merge adjacent smaller buckets into the hide mask to recover multi-region hides
+      let bestMaskData = hideBucket.rep.data;
+      const maskLen = hideBucket.rep.w * hideBucket.rep.h;
+      const merged = new Float32Array(maskLen);
+      for (let i = 0; i < maskLen; i++) merged[i] = bestMaskData[i] > 0 ? 1 : 0;
+      const dilateRadius = Math.max(8, Math.round(Math.min(hideBucket.rep.w, hideBucket.rep.h) * 0.05));
+      const dilated = _dilateMask(merged, hideBucket.rep.w, hideBucket.rep.h, dilateRadius);
+      let mergedCount = 0;
+      const MIN_MERGE_VOTES = Math.max(4, Math.ceil(hideBucket.masks.length * 0.25));
+      const bgBucket = [...buckets].sort((a2,b2) => b2.avgArea - a2.avgArea)[0];
+      const bgMaskRef = bgBucket && bgBucket !== hideBucket && bgBucket.avgArea > 70 ? bgBucket.rep : null;
+
+      for (const other of buckets) {
+        if (other === hideBucket) continue;
+        if (other.avgArea > 70 || other.masks.length < MIN_MERGE_VOTES || other.isMeshLike) continue;
+        if (bgMaskRef && other.rep.w === bgMaskRef.w && other.rep.h === bgMaskRef.h) {
+          let bgOvlp = 0, oTotal = 0;
+          for (let p = 0; p < maskLen; p++) {
+            if (other.rep.data[p] > 0) { oTotal++; if (bgMaskRef.data[p] > 0) bgOvlp++; }
+          }
+          if (oTotal > 0 && bgOvlp / oTotal > 0.70) continue;
+        }
+        let overlapPixels = 0, siblingPixels = 0;
+        for (let i = 0; i < dilated.length; i++) {
+          const inOther = other.rep.data[i] > 0;
+          if (inOther) { siblingPixels++; if (dilated[i] > 0) overlapPixels++; }
+        }
+        const overlapRatio = siblingPixels > 0 ? overlapPixels / siblingPixels : 0;
+        const isAdjacent = overlapRatio > 0.4 && other.avgArea < hideBucket.avgArea * 3.5;
+        const isOverlap = overlapRatio > 0.2 && other.avgArea < 50;
+        if (isAdjacent || isOverlap) {
+          for (let i = 0; i < maskLen; i++) if (other.rep.data[i] > 0) merged[i] = 1;
+          mergedCount++;
+          setLog(`Merged adjacent region: ${other.avgArea.toFixed(1)}% area`);
+        }
+      }
+      if (mergedCount > 0) {
+        _morphClose(merged, hideBucket.rep.w, hideBucket.rep.h, 2);
+        setLog(`Merged ${mergedCount} adjacent regions into hide`);
+      }
+
+      // ── Consensus hide mask: vote-count each pixel across all bucket masks.
+      // Pixels seen in ≥40% of votes form the boundary — erases floor spill from edge masks.
+      const voteThresh = Math.max(1, Math.round(hideBucket.masks.length * 0.40));
+      const voteMap = new Uint16Array(vImgW * vImgH);
+      for (const m of hideBucket.masks) {
+        const up = _upscaleMask(m.data, m.w, m.h, vImgW, vImgH);
+        for (let i = 0; i < up.length; i++) if (up[i]) voteMap[i]++;
+      }
+      const hideMask = new Uint8Array(vImgW * vImgH);
+      // If we merged adjacent regions, upscale the merged result instead
+      if (mergedCount > 0) {
+        const mergedUp = _upscaleMask(merged, hideBucket.rep.w, hideBucket.rep.h, vImgW, vImgH);
+        for (let i = 0; i < mergedUp.length; i++) hideMask[i] = mergedUp[i] ? 1 : 0;
+      } else {
+        for (let i = 0; i < voteMap.length; i++) hideMask[i] = voteMap[i] >= voteThresh ? 1 : 0;
+      }
+      _morphClose(hideMask, vImgW, vImgH, 2);
+
+      // ── Color-based mask refinement (from cncVisionPRO_B) ──
+      // Carve out interior regions that differ significantly in color from the hide surface
+      const srcPixelData = vImgCtx.getImageData(0, 0, vImgW, vImgH).data;
+      _refineByColor(hideMask, vImgW, vImgH, srcPixelData);
+
+      let hideContour = _marchContour(hideMask, vImgW, vImgH);
+      if (hideContour.length<10) hideContour = _scanContour(hideMask, vImgW, vImgH);
+      hideContour = _smooth(hideContour, 3);
+      hideContour = _rdp(hideContour, vParams.epsilon);
+
+      // Paper handling: auto-calibrate (paper is NOT added as a hole)
+      let paperHolePoly = null;
+      let calibPxPerMm = null;
+      if (paperBucket) {
+        const paperMask = _upscaleMask(paperBucket.rep.data, paperBucket.rep.w, paperBucket.rep.h, vImgW, vImgH);
+        _morphClose(paperMask, vImgW, vImgH, 1);
+        let paperContour = _marchContour(paperMask, vImgW, vImgH);
+        if (paperContour.length<4) paperContour = _scanContour(paperMask, vImgW, vImgH);
+        paperContour = _smooth(paperContour, 2);
+        paperContour = _rdp(paperContour, 1.5);
+        if (paperContour.length >= 4) {
+          paperHolePoly = paperContour.map(p=>[p.x, p.y]);
+          let px0=1e9,py0=1e9,px1=-1e9,py1=-1e9;
+          for(const[x,y]of paperHolePoly){if(x<px0)px0=x;if(x>px1)px1=x;if(y<py0)py0=y;if(y>py1)py1=y;}
+          const longerPx = Math.max(px1-px0, py1-py0);
+          const knownW = parseFloat(document.getElementById('visionCalWidth').value) || 297;
+          const knownH = parseFloat(document.getElementById('visionCalHeight').value) || 210;
+          calibPxPerMm = longerPx / Math.max(knownW, knownH);
+          setLog(`Paper calibrated: ${calibPxPerMm.toFixed(2)} px/mm (${Math.max(knownW,knownH)}mm = ${Math.round(longerPx)}px)`);
+        }
+      }
+
+      // ── Topological hole detection (from cncVisionPRO_B) ──
+      // Phase 1: Flood-fill interior OFF regions of the hide mask to FIND holes.
+      // Phase 2: For each hole, use SAM with point prompt at centroid for PRECISE boundary.
+      // This combines topological robustness (finds ALL holes) with SAM accuracy (smooth edges).
+      const holeMinPercent = 1;
+      const totalHoleMaskArea = vImgW * vImgH;
+      const minHolePixels = (holeMinPercent / 100) * totalHoleMaskArea;
+      const holeLabels = new Int32Array(vImgW * vImgH);
+      let holeNextLabel = 1;
+      const holeRegionInfo = [];
+      const holeStack = [];
+
+      for (let y = 0; y < vImgH; y++) {
+        for (let x = 0; x < vImgW; x++) {
+          const idx = y * vImgW + x;
+          if (hideMask[idx] || holeLabels[idx]) continue;
+          const lbl = holeNextLabel++;
+          let count = 0, touchesEdge = false;
+          holeStack.length = 0;
+          holeStack.push(idx);
+          holeLabels[idx] = lbl;
+          while (holeStack.length) {
+            const p = holeStack.pop();
+            count++;
+            const py = (p / vImgW) | 0, px2 = p - py * vImgW;
+            if (px2 === 0 || py === 0 || px2 === vImgW - 1 || py === vImgH - 1) touchesEdge = true;
+            const nbrs = [
+              px2 > 0 ? p - 1 : -1,
+              px2 < vImgW - 1 ? p + 1 : -1,
+              py > 0 ? p - vImgW : -1,
+              py < vImgH - 1 ? p + vImgW : -1,
+            ];
+            for (const np of nbrs) {
+              if (np >= 0 && !hideMask[np] && !holeLabels[np]) {
+                holeLabels[np] = lbl;
+                holeStack.push(np);
+              }
+            }
+          }
+          holeRegionInfo.push({ label: lbl, area: count, touchesEdge });
+        }
+      }
+
+      // Filter to valid hole candidates
+      const paperCenterX = paperBucket ? (paperBucket.bbox.x0 + paperBucket.bbox.x1) / 2 * (vImgW / paperBucket.rep.w) : -1;
+      const paperCenterY = paperBucket ? (paperBucket.bbox.y0 + paperBucket.bbox.y1) / 2 * (vImgH / paperBucket.rep.h) : -1;
+      const holeCandidates = [];
+
+      for (const region of holeRegionInfo) {
+        if (region.touchesEdge) continue;
+        if (region.area < minHolePixels) continue;
+
+        let hcx = 0, hcy = 0, hCount = 0;
+        for (let i = 0; i < holeLabels.length; i++) {
+          if (holeLabels[i] === region.label) {
+            hcx += i % vImgW;
+            hcy += (i / vImgW) | 0;
+            hCount++;
+          }
+        }
+        hcx /= hCount; hcy /= hCount;
+
+        // Skip if this hole's center is near the detected paper center
+        if (paperBucket && paperCenterX > 0) {
+          const paperDist = Math.hypot(hcx - paperCenterX, hcy - paperCenterY);
+          const paperSize = Math.max(
+            (paperBucket.bbox.x1 - paperBucket.bbox.x0) * (vImgW / paperBucket.rep.w),
+            (paperBucket.bbox.y1 - paperBucket.bbox.y0) * (vImgH / paperBucket.rep.h)
+          );
+          if (paperDist < paperSize * 0.5) continue;
+        }
+        holeCandidates.push({ region, cx: hcx, cy: hcy });
+      }
+
+      // Phase 2: SAM-refined hole boundaries
+      // For each hole candidate, prompt SAM at the centroid to get a precise mask,
+      // then use the same marching-squares + smooth + RDP pipeline as the boundary.
+      const physicalHoles = [];
+      setLog(`Refining ${holeCandidates.length} hole(s) with SAM...`);
+
+      for (let hi = 0; hi < holeCandidates.length; hi++) {
+        const { region, cx: hcx, cy: hcy } = holeCandidates[hi];
+
+        // Map centroid from image coords to SAM_DIM coords for point prompt
+        const samPx = Math.round(hcx * (SAM_DIM / vImgW));
+        const samPy = Math.round(hcy * (SAM_DIM / vImgH));
+
+        let samHoleMask = null;
+        try {
+          const ip = new Tensor('float32', [samPx, samPy], [1, 1, 1, 2]);
+          const il = new Tensor('int64', [1n], [1, 1, 1]);
+          const out = await vModel({ ...vEmbeddings, input_points: ip, input_labels: il });
+          const scores = out.iou_scores.data;
+          const dims = out.pred_masks.dims;
+          const mH = dims[dims.length - 2], mW = dims[dims.length - 1], mSz = mW * mH;
+
+          // Pick the mask with highest IoU score that fits within the hole's approximate area
+          let bestMask = null, bestScore = -1;
+          for (let m = 0; m < scores.length; m++) {
+            const score = Number(scores[m]);
+            if (score < 0.5) continue;
+            const mData = out.pred_masks.data.slice(m * mSz, (m + 1) * mSz);
+            let area = 0;
+            for (let p = 0; p < mSz; p++) if (mData[p] > 0) area++;
+            const pct = (area / mSz) * 100;
+            // Hole should be smaller than the hide and not too tiny
+            if (pct < 0.3 || pct > hideBucket.avgArea * 0.8) continue;
+            // Verify this mask overlaps the topological hole region (not the hide itself)
+            // Check: most of this mask's pixels should be in the OFF region of the hide
+            const upCheck = _upscaleMask(mData, mW, mH, vImgW, vImgH);
+            let inHole = 0, inHide = 0;
+            const checkStep = Math.max(1, Math.floor(Math.sqrt(vImgW * vImgH / 20000)));
+            for (let sy = 0; sy < vImgH; sy += checkStep) {
+              for (let sx = 0; sx < vImgW; sx += checkStep) {
+                const si = sy * vImgW + sx;
+                if (upCheck[si]) {
+                  if (!hideMask[si]) inHole++;
+                  else inHide++;
+                }
+              }
+            }
+            // Valid hole mask: majority of pixels should be in OFF region (the hole)
+            const holeRatio = inHole / Math.max(1, inHole + inHide);
+            if (holeRatio < 0.4) continue;
+            if (score > bestScore) {
+              bestScore = score;
+              bestMask = { data: mData, w: mW, h: mH };
+            }
+          }
+          if (bestMask) samHoleMask = bestMask;
+        } catch (e) { /* SAM failed for this point, fall back to topological contour */ }
+
+        // Extract contour — prefer SAM mask, fall back to flood-fill mask
+        let hContour;
+        if (samHoleMask) {
+          // Upscale SAM mask to full image resolution
+          const upHole = _upscaleMask(samHoleMask.data, samHoleMask.w, samHoleMask.h, vImgW, vImgH);
+          _morphClose(upHole, vImgW, vImgH, 2);
+          hContour = _marchContour(upHole, vImgW, vImgH);
+          if (hContour.length < 6) hContour = _scanContour(upHole, vImgW, vImgH);
+        } else {
+          // Fall back to topological flood-fill contour
+          const holeMask2 = new Uint8Array(vImgW * vImgH);
+          for (let i = 0; i < holeLabels.length; i++) {
+            if (holeLabels[i] === region.label) holeMask2[i] = 1;
+          }
+          hContour = _marchContour(holeMask2, vImgW, vImgH);
+          if (hContour.length < 6) hContour = _scanContour(holeMask2, vImgW, vImgH);
+        }
+
+        // Same smoothing + simplification pipeline as the outer boundary
+        hContour = _smooth(hContour, 3);
+        hContour = _rdp(hContour, vParams.epsilon);
+        if (hContour.length >= 4) {
+          physicalHoles.push(hContour.map(p => [p.x, p.y]));
+          setLog(`  Hole ${hi+1}: ${hContour.length} verts${samHoleMask ? ' (SAM refined)' : ' (topological)'}`);
+        }
+      }
+      physicalHoles.sort((a, b) => b.length - a.length);
+      setLog(`Hole detection complete: ${physicalHoles.length} hole(s) found`);
+
+      vDetectedPoly = hideContour.map(p=>[p.x,p.y]);
+      vDetectedHoles = physicalHoles;
+      vPaperHole = paperHolePoly;
+      vCalibPxPerMm = calibPxPerMm;
+      vProgress.style.width = '100%';
+      renderVisionCanvas();
+      btnAccept.disabled = false;
+      btnDetect.textContent = 'Re-detect'; btnDetect.disabled = false;
+      setLog(`Hide: ${vDetectedPoly.length} verts, area=${hideBucket.avgArea.toFixed(1)}%${physicalHoles.length?' | '+physicalHoles.length+' hole(s)':''}${paperHolePoly?' | Paper calibrated':''}`);
+    } catch(e) {
+      vModelStatus.textContent = `Error: ${e.message}`;
+      btnDetect.disabled=false; btnDetect.textContent='Detect Hide Boundary'; vProgress.style.width='0%';
+      setLog(`Detection error: ${e.message}`);
+    }
+  });
+
+  // Accept — push hide + physical holes into nesting (paper is calibration only, not a hole)
+  btnAccept.addEventListener('click', () => {
+    if (!vDetectedPoly||vDetectedPoly.length<3) return;
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    for(const[x,y]of vDetectedPoly){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+    const norm=vDetectedPoly.map(([x,y])=>[x-x0,y-y0]);
+    let bb;
+    if (vCalibPxPerMm) {
+      const ppm = vCalibPxPerMm;
+      const normMm = norm.map(([x,y])=>[x/ppm, y/ppm]);
+      let mx0=1e9,my0=1e9,mx1=-1e9,my1=-1e9;
+      for(const[x,y]of normMm){if(x<mx0)mx0=x;if(x>mx1)mx1=x;if(y<my0)my0=y;if(y>my1)my1=y;}
+      bb={x0:mx0,y0:my0,x1:mx1,y1:my1,w:mx1-mx0,h:my1-my0};
+      // Normalize physical holes to same mm origin
+      const holeMm = (vDetectedHoles||[]).map(h=>h.map(([hx,hy])=>[(hx-x0)/ppm,(hy-y0)/ppm]));
+      S.hide={poly:normMm,holes:holeMm,bb,sourceFile:'LeatherVision capture'};
+      document.getElementById('hc-dims').textContent=`${Math.round(bb.w)} × ${Math.round(bb.h)} mm · calibrated${holeMm.length?' · '+holeMm.length+' hole(s)':''}`;
+      document.getElementById('shlbl').textContent=`Hide: ${Math.round(bb.w)} × ${Math.round(bb.h)} mm`;
+      setLog(`Hide accepted: ${Math.round(bb.w)}×${Math.round(bb.h)} mm, ${normMm.length} verts, ${holeMm.length} hole(s), cal=${vCalibPxPerMm.toFixed(2)} px/mm`);
+    } else {
+      bb={x0:0,y0:0,x1:x1-x0,y1:y1-y0,w:x1-x0,h:y1-y0};
+      // Normalize physical holes to same px origin
+      const holePx = (vDetectedHoles||[]).map(h=>h.map(([hx,hy])=>[hx-x0,hy-y0]));
+      S.hide={poly:norm,holes:holePx,bb,sourceFile:'LeatherVision capture'};
+      document.getElementById('hc-dims').textContent=`${Math.round(bb.w)} × ${Math.round(bb.h)} px · uncalibrated${holePx.length?' · '+holePx.length+' hole(s)':''}`;
+      document.getElementById('shlbl').textContent=`Hide: ${Math.round(bb.w)} × ${Math.round(bb.h)} px`;
+      setLog(`Hide accepted: ${Math.round(bb.w)}×${Math.round(bb.h)} px, ${norm.length} verts, ${holePx.length} hole(s)`);
+    }
+    const{w,h}=sheetDims(); S.sheetW=w;S.sheetH=h;
+    document.getElementById('sw').value=Math.round(w); document.getElementById('sh').value=Math.round(h);
+    document.getElementById('sw').disabled=true; document.getElementById('sh').disabled=true;
+    document.getElementById('dz-h').style.display='none';
+    document.getElementById('hide-card').style.display='block';
+    document.getElementById('hc-name').textContent='LeatherVision capture';
+    if(S.placed.length){S.placed=[];_placedCountReset();if(col)col.reset();updateStats();}
+    hideVisionCanvas();
+    updateUI(); zoomFit();
+    if(vControls) vControls.style.display='none';
+    stopCamera();
+  });
+
+  // ═══ Helper functions ═══
+  function _upscaleMask(data,sw,sh,dw,dh){
+    const r=new Uint8Array(dw*dh);const sxR=(sw-1)/Math.max(1,dw-1),syR=(sh-1)/Math.max(1,dh-1);
+    for(let y=0;y<dh;y++){const fy=y*syR,y0=Math.floor(fy),y1=Math.min(y0+1,sh-1),wy=fy-y0;
+    for(let x=0;x<dw;x++){const fx=x*sxR,x0=Math.floor(fx),x1=Math.min(x0+1,sw-1),wx=fx-x0;
+    const v=(data[y0*sw+x0]*(1-wx)+data[y0*sw+x1]*wx)*(1-wy)+(data[y1*sw+x0]*(1-wx)+data[y1*sw+x1]*wx)*wy;
+    r[y*dw+x]=v>0?1:0;}}return r;
+  }
+  function _morphClose(mask,w,h,rad){
+    const tmp=new Uint8Array(mask.length);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){let on=0;for(let dy=-rad;dy<=rad&&!on;dy++){const ny=y+dy;if(ny<0||ny>=h)continue;for(let dx=-rad;dx<=rad;dx++){const nx=x+dx;if(nx<0||nx>=w)continue;if(mask[ny*w+nx]){on=1;break;}}}tmp[y*w+x]=on;}
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){let off=0;for(let dy=-rad;dy<=rad&&!off;dy++){const ny=y+dy;if(ny<0||ny>=h){off=1;break;}for(let dx=-rad;dx<=rad;dx++){const nx=x+dx;if(nx<0||nx>=w){off=1;break;}if(!tmp[ny*w+nx]){off=1;break;}}}mask[y*w+x]=off?0:1;}
+  }
+  function _marchContour(mask,w,h){
+    const labels=new Int32Array(w*h);let nl=1;const sizes=[0],stack=[];
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(mask[i]&&!labels[i]){const l=nl++;let c=0;stack.length=0;stack.push(i);labels[i]=l;while(stack.length){const p=stack.pop();c++;const py=(p/w)|0,px2=p-py*w;if(px2>0&&mask[p-1]&&!labels[p-1]){labels[p-1]=l;stack.push(p-1);}if(px2<w-1&&mask[p+1]&&!labels[p+1]){labels[p+1]=l;stack.push(p+1);}if(py>0&&mask[p-w]&&!labels[p-w]){labels[p-w]=l;stack.push(p-w);}if(py<h-1&&mask[p+w]&&!labels[p+w]){labels[p+w]=l;stack.push(p+w);}}sizes.push(c);}}
+    let bl=1,bs=0;for(let i=1;i<sizes.length;i++)if(sizes[i]>bs){bs=sizes[i];bl=i;}
+    const mm=new Uint8Array(w*h);for(let i=0;i<mask.length;i++)mm[i]=labels[i]===bl?1:0;
+    const isB=(x,y)=>{if(!mm[y*w+x])return false;if(x===0||y===0||x===w-1||y===h-1)return true;return !mm[y*w+(x-1)]||!mm[y*w+(x+1)]||!mm[(y-1)*w+x]||!mm[(y+1)*w+x];};
+    let sx=-1,sy=-1;for(let y=0;y<h&&sx<0;y++)for(let x=0;x<w;x++)if(isB(x,y)){sx=x;sy=y;break;}
+    if(sx<0)return[];
+    const contour=[],dx8=[1,1,0,-1,-1,-1,0,1],dy8=[0,1,1,1,0,-1,-1,-1];
+    let cx=sx,cy=sy,dir=7;const vis=new Set();
+    for(let step=0;step<(w+h)*8;step++){const k=cy*w+cx;if(!vis.has(k)){contour.push({x:cx+.5,y:cy+.5});vis.add(k);}const ss=(dir+5)%8;let f=false;for(let i=0;i<8;i++){const d2=(ss+i)%8;const nx=cx+dx8[d2],ny=cy+dy8[d2];if(nx<0||nx>=w||ny<0||ny>=h)continue;if(isB(nx,ny)){dir=d2;cx=nx;cy=ny;f=true;break;}}if(!f)break;if(cx===sx&&cy===sy&&step>4)break;}
+    return contour;
+  }
+  function _scanContour(mask,w,h){const le=[],re=[];for(let y=0;y<h;y++){let l=-1,r=-1;for(let x=0;x<w;x++)if(mask[y*w+x]){if(l<0)l=x;r=x;}if(l>=0){le.push({x:l,y});re.push({x:r,y});}}const c=[...le,...re.reverse()];const step=Math.max(1,Math.floor(c.length/500));const s=[];for(let i=0;i<c.length;i+=step)s.push(c[i]);return s;}
+  function _smooth(pts,k){if(pts.length<5)return pts;const out=[];const n=pts.length;for(let i=0;i<n;i++){let sx2=0,sy2=0,c=0;for(let j=-k;j<=k;j++){const p=pts[((i+j)%n+n)%n];sx2+=p.x;sy2+=p.y;c++;}out.push({x:sx2/c,y:sy2/c});}return out;}
+  function _rdp(pts,eps){if(pts.length<=2)return pts;let md=0,mi=0;const f=pts[0],l=pts[pts.length-1];for(let i=1;i<pts.length-1;i++){const dx=l.x-f.x,dy=l.y-f.y,ls=dx*dx+dy*dy;const d2=ls===0?Math.hypot(pts[i].x-f.x,pts[i].y-f.y):Math.abs(dy*pts[i].x-dx*pts[i].y+l.x*f.y-l.y*f.x)/Math.sqrt(ls);if(d2>md){md=d2;mi=i;}}if(md>eps){const left=_rdp(pts.slice(0,mi+1),eps),right=_rdp(pts.slice(mi),eps);return left.slice(0,-1).concat(right);}return[f,l];}
+})();
 
 </script>
 </body>
